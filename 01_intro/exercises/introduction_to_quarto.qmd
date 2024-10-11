@@ -1,0 +1,87 @@
+---
+title: "Introduction to Quarto"
+date: "2024-10-08"
+format: html
+engine: knitr
+---
+
+# Introduction to Quarto
+
+**Quarto** is an open-source scientific and technical publishing system that allows you to create dynamic documents with embedded code. If you know R Markdown, this is very similar. You can include R, Python, and other languages in Quarto documents to generate reports, presentations, and more.
+
+In this document, we will introduce the basics of Quarto, including:
+
+-   Creating and executing code chunks
+-   Displaying plots
+-   Using inline code to dynamically display values in the text
+
+## Code Chunks in Quarto
+
+In Quarto, you can insert chunks of executable code in several languages. Here's an example of an R chunk that creates a simple data frame and displays it.
+
+```{r}
+# Creating a simple data frame in R
+df <- data.frame(
+  Name = c("Apple", "Banana", "Cherry"),
+  Price = c(1.5, 0.75, 2.0)
+)
+df
+```
+
+### Chunk Options
+
+You can customize how code chunks are displayed and executed. For instance, setting `echo: false` will hide the code but show the output. Here's the same chunk, but without the code being shown:
+
+```{r}
+#| echo: false
+df
+```
+
+## Inline Code
+
+Inline code allows you to embed code directly within text. This is useful for dynamically updating values in your text based on calculations. For example, we can calculate the mean price of the fruits: mean(df\$Price)
+
+The mean price of the fruits is `r mean(df$Price)`.
+
+## Plotting in Quarto
+
+Quarto makes it easy to include plots in your document. Here's an example of a simple plot created using R (if you get an error because of ggplot02 not installed, simply uncomment the section in the code below to first download it when running the chunk):
+
+```{r}
+# Generating a plot in R
+# library.install("ggplot2")    # if you need to install "ggplot02" simply uncomment the line and run the chunk again
+library(ggplot2)
+
+ggplot(df, aes(x = Name, y = Price)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Fruit Prices", x = "Fruit", y = "Price (USD)")
+```
+
+Quarto supports many other plotting libraries like `matplotlib` (Python), `plotly`, and more.
+
+### Customizing Plots
+
+You can also customize your plots by adding labels, adjusting themes, and more. For example, we could change the bar colors or labels in the plot above. Try other colors, too.
+
+```{r}
+ggplot(df, aes(x = Name, y = Price)) +
+  geom_bar(stat = "identity", fill = c("red", "yellow", "purple")) +
+  labs(title = "Customized Fruit Prices", x = "Fruit", y = "Price (USD)") +
+  theme_minimal()
+```
+
+## Conclusion
+
+In this introduction, we’ve covered:
+
+-   How to create and execute code chunks
+-   Inline code usage for dynamic updates
+-   Plotting with R in Quarto
+
+Quarto provides a powerful platform for combining text and code, making it ideal for technical documentation, reproducible research, and reports.
+
+### Explanation of phrases we often use here:
+
+1.  **Code Chunks**: Demonstrates how to include executable code in Quarto.
+2.  **Chunk Options**: Example of how to hide the code but show the result.
+3.  **Inline Code**: Embeds code into the text to dynamically calculate values.

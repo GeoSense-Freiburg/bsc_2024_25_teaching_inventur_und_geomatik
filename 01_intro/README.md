@@ -1,20 +1,9 @@
-# B.Sc. Inventuren und angewandte Geomatik (ca. 70 Personen?)
-## Allgemeine Infos zum Kurs
-https://campus.uni-freiburg.de:443/qisserver/pages/startFlow.xhtml?_flowId=detailView-flow&unitId=103312&periodId=2483&navigationPosition=examEventOverviewOwn
+# 16.10.2024
 
-Start 16.10.24
+Wunderschönes herzliches Willkommen zum Modul der Inventur und Geomatik im Wintersemester 24/25. Generell befinden sich alle Kursunterlagen und -infos hier im Github. Dies können Sie ganz einfach auf ihren Laptop klonen (clone repository --> chatGPT fragen :) )
 
-Mi: 10-12 Uhr (HS 3118 KGIII) + 14:00-16:00 (HS HH5 → Kristallographie)
+Hier finden Sie die nötigen Infos zur Vorlesung und Übung diese Woche.
 
-Ca. 70 Personen?
-
-- Laptop mitbringen. Falls nicht vorhanden im Team
-- Qgis (3.34 LTR version!) und Rstudio installieren
-
---------------------
-
-# News
-## 16.10.2024
 ### Block Vormittag (Max, Teja,Thomas P., Thomas S.):
 
 - Einfürung in das Modul
