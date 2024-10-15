@@ -1,6 +1,11 @@
 # 16.10.2024
 
-Wunderschönes herzliches Willkommen zum Modul der Inventur und Geomatik im Wintersemester 24/25. Generell befinden sich alle Kursunterlagen und -infos hier im Github. Dies können Sie ganz einfach auf ihren Laptop klonen (clone repository --> chatGPT fragen :) )
+Wunderschönes herzliches Willkommen zum Modul der Inventur und Geomatik im Wintersemester 24/25. 
+Generell befinden sich alle Kursunterlagen und -infos hier im Github. 
+Dies können sie entweder klonen und immer wieder die neusten Daten fetchen (git),
+oder sie laden die files, die Sie brauchen, einfach herunter.
+
+Im Folder "exercises" finden Sie alle nötigen Übungen zum aktuellen Thema.
 
 Hier finden Sie die nötigen Infos zur Vorlesung und Übung diese Woche.
 
