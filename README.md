@@ -17,8 +17,8 @@ worin sie auf github dann direkt sehen, worum es geht. Im Ordner "lecture" gibt 
 gibt es dann die Übungen dazu zum herunterladen.
 
 Also getreu dem Schema:
-
-`01_intro
+```
+01_intro
 -- lecture
 -- -- beispielfolie.pdf
 -- -- ...
@@ -26,7 +26,7 @@ Also getreu dem Schema:
 -- -- übung_1
 -- -- ...
 -- README.md
-`
+```
 --------------------
 
 # News
