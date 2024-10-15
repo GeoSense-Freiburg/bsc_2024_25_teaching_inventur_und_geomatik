@@ -16,6 +16,17 @@ Heute z.b. ist für die der Ordner "01_intro" interessant. Generell wird es imme
 worin sie auf github dann direkt sehen, worum es geht. Im Ordner "lecture" gibt es Folien und Vorlesungsmaterial, im Ordner "exercises"
 gibt es dann die Übungen dazu zum herunterladen.
 
+Also getreu dem Schema:
+
+01_intro
+-- lecture
+-- -- beispielfolie.pdf
+-- -- ...
+-- exercise
+-- -- übung_1
+-- -- ...
+-- README.md
+
 --------------------
 
 # News
