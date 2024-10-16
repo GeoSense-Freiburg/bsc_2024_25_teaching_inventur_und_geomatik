@@ -18,6 +18,7 @@ Hier finden Sie die nötigen Infos zur Vorlesung und Übung diese Woche.
 - Ablauf des Moduls
 - Technische Fragestellung (R, Qgis, Cloud, Laptops)
 - Vorerfahrungen Inventur
+- Folien (geosense): https://docs.google.com/presentation/d/1SVGMj-CoHedVe0Tf-smlN9TxmSGco5wfQb4dmNbRka8/edit?usp=sharing
 
 ### Block: Nachmittag (Eigenarbeit):
 
