@@ -28,6 +28,20 @@ Also getreu dem Schema:
 --------------------
 
 # News
+
+## Feldinventur am Freitag (18.10.2024)
+
+An die Freiwilligen HelferInnen unter euch, die mit Max und Teja diesen Freitag mit ins Feld kommen zum Bäume einmessen - bitte schreibt spätestens bis Donnerstag (17.10.2024) Mittag (12 Uhr) eine Email an Teja und Max:
+
+- maximilian.fabi@geosense.uni-freiburg.de
+- teja.kattenborn@geosense.uni-freiburg.de
+
+Bitte mit Name und wie wir euch kurzfristig gut erreichen können!
+
+Der Feldtag wird vermutlich um 0830 morgens am Herderbau im alten Innenhof starten (da, wo die autos alle parken) und bis ca. 16/17 Uhr dauern. Ankunft am Herderbau ist allerspätestens gegen 1730 +-.
+
+Vielen Dank bereits an die Freiwilligen unter euch :)
+
 ## 16.10.2024
 ### Block Vormittag (Max, Teja,Thomas P., Thomas S.):
 
