@@ -29,7 +29,7 @@ Also getreu dem Schema:
 
 # News
 
-## Block Vormittag (Thomas P.):
+## 23.10.2024: Block Vormittag (Thomas P.):
 
 ### Theorie bzw. Einführung Forstliche Inventuren
 
