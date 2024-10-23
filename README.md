@@ -4,13 +4,13 @@ https://campus.uni-freiburg.de:443/qisserver/pages/startFlow.xhtml?_flowId=detai
 
 Start 16.10.24
 
-Mi: 10-12 Uhr (HS 3118 KGIII) + 14:00-16:00 (HS HH5 → Kristallographie - nur bei Bedarf und Ankündigung)
+**Mi: 10-12 Uhr (HS 3118 KGIII) + 14:00-16:00 (HS HH5 → Kristallographie - nur bei Bedarf und Ankündigung)**
 
 - Laptop mitbringen. Falls nicht vorhanden im Team
 - Qgis (3.34 LTR version!) und Rstudio installieren
 
 Hier im Github finden sie alle unterlagen zum Kurs. Die Themen sind durchnummeriert und bekommen wöchentlich einen neuen Ordner + Nummer.
-Heute z.b. ist für die der Ordner "01_intro" interessant. Generell wird es immer eine README.md Datei in jedem dieser Ordner geben,
+Generell wird es immer eine README.md Datei in jedem dieser Ordner geben,
 worin sie auf github dann direkt sehen, worum es geht. Im Ordner "lecture" gibt es Folien und Vorlesungsmaterial, im Ordner "exercises"
 gibt es dann die Übungen dazu zum herunterladen.
 
