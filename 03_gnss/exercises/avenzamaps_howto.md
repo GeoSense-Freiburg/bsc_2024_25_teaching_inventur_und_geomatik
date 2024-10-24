@@ -71,14 +71,4 @@ Der Pfad wird nun als abgeschlossenes Element gespeichert.
 - Wählen Sie alle Punkte aus, die Sie während der Übung gespeichert haben (NICHT die, die wir ihnen gegeben haben!).
 - Exportieren Sie die Punkte als CSV so, dass Sie sie wieder finden und Zuhause am PC in QGIS einladen können.
 
-## 6. Import der Daten in QGIS
-
-**Import in QGIS:**
-
-- Öffnen Sie QGIS auf Ihrem Computer.
-- Wählen Sie Layer > Layer hinzufügen > CSV oder KML hinzufügen (je nach dem, was sie exportiert haben)
-
-**Erstellen eines Geopackage:**
-
-- Fügen Sie sowohl den Pfad (als Linien-Layer) als auch die eingemessenen Punkte (als Punkte-Layer) in **ein** Geopackage ein (nicht zwei Geopackages). Hilfreiches Tool ist hier _"package layers"_.
-- Speichern Sie das Geopackage für die Abgabe und senden dieses per Mail mit den Namen der Gruppenteilnehmern. **gruppe_MF_TK_rundlauf.gpkg** (hier z.b., wenn **M**aximilian **F**abi und **T**eja **K**attenborn ein Team gewesen wären.)
+## Nun folgen Sie weiter der Anleitung in ex03.pdf
