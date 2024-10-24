@@ -63,7 +63,7 @@ Der Pfad wird nun als abgeschlossenes Element gespeichert.
 
 - Öffnen Sie die Liste der gespeicherten Tracks (unter ‘Meine Karten’ > Track-Symbol).
 - Wählen Sie den getrackten Pfad aus und tippen Sie auf die drei Punkte (⋮) neben dem Track-Namen.
-- Wählen Sie ‘Exportieren’ und exportieren Sie den Pfad als KML (KML ist für den Import in QGIS ausreichend).
+- Wählen Sie ‘Exportieren’ und exportieren Sie den Pfad als GPX (GPX ist für den Import in QGIS ausreichend).
 
 **Export der Punkte:**
 
