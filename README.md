@@ -43,7 +43,7 @@ folder: (03_gnss)
 - GNSS Unsicherheiten minimieren
 - RTK, SAPOS, Rover, Base station, Postprocessing
 
-## Block Nachmittags (Max, Teja, Thomas P., Uwe U. )
+## Block Nachmittags (Max)
 - Feldübung zu GNSS
 - Gruppen zu 2 Personen
     - Eine Person trackt, eine misst punkte ein (Rundlauf um schloßberg)
