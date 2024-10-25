@@ -56,7 +56,7 @@ Was ihr braucht:
 - Avenza Maps App (bitte downloaden!)
 - Unterlagen im Ordner 03_gnss/exercises
 
-**Treffpunkt hinter dem Kanonenplatz pünktlich um 14:15 Uhr (bitte seid vorher da, damit wir direkt starten können).**
+**Treffpunkt hinter dem Kanonenplatz (https://maps.app.goo.gl/1t6J6wnk2cSg4bkt7) pünktlich um 14:15 Uhr (bitte seid vorher da, damit wir direkt starten können).**
 
 --------------------------
 
