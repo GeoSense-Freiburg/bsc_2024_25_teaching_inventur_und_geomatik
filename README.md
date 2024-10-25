@@ -49,7 +49,12 @@ folder: (03_gnss)
     - Eine Person trackt, eine misst punkte ein (Rundlauf um schloßberg)
 - Einführung in EmlidReach, Base, Rover (vor der Übung)
 
-**Wetterfeste Kleidung**
+Was ihr braucht:
+
+- **Wetterfeste Kleidung**
+- Smartphone
+- Avenza Maps App (bitte downloaden!)
+- Unterlagen im Ordner 03_gnss/exercises
 
 **Treffpunkt hinter dem Kanonenplatz pünktlich um 14:15 Uhr (bitte seid vorher da, damit wir direkt starten können).**
 
