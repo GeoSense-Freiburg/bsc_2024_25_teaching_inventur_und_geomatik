@@ -1,0 +1,10 @@
+name: lecture
+title:
+username: geosense
+account: geosense
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13131559
+bundleId: 9269109
+url: https://geosense.shinyapps.io/lecture/
+version: 1
