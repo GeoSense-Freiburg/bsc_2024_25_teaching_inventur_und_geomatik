@@ -45,9 +45,9 @@ folder: 03_gnss
 - GNSS Unsicherheiten minimieren
 - RTK, SAPOS, Rover, Base station, Postprocessing
 
-## Block Nachmittags (Max)
+## Block Nachmittags (Max): Feldübung!
 
-- Feldübung zu GNSS
+- **Feldübung** zu GNSS
 - Gruppen zu 2 Personen
     - Eine Person trackt, eine misst punkte ein (Rundlauf um schloßberg)
 - Einführung in EmlidReach, Base, Rover (vor der Übung)
@@ -60,6 +60,14 @@ Was ihr braucht:
 - Unterlagen im Ordner 03_gnss/exercises
 
 **Treffpunkt hinter dem Kanonenplatz (https://maps.app.goo.gl/1t6J6wnk2cSg4bkt7) pünktlich um 14:15 Uhr (bitte seid vorher da, damit wir direkt starten können).**
+
+Grober Ablauf:
+
+- Start 14:15
+- ca. 15-20 Minuten Einführung in Emlid Reach Base und Rover
+- Eigenständig den Rundlauf (ca. 1,5h) absolvieren und mittels Avenza Maps die Punkte und den Pfad tracken.
+- Nach der Übung direkt die CSV und GPX online hochladen und Ergebnisse anschauen
+- CSV und GPX an Max per Mail senden (als Backup falls die online App nicht funktionieren sollte)
 
 --------------------------
 
