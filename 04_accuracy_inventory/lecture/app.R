@@ -20,9 +20,7 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       fileInput("file_upload", "Upload CSV File", accept = ".csv"),
-      actionButton("undo_upload", "Undo Last CSV Upload"),
       fileInput("gpx_upload", "Upload GPX File", accept = ".gpx"),
-      actionButton("undo_gpx", "Undo Last GPX Upload"),
       textOutput("upload_status")
     ),
     
@@ -45,7 +43,7 @@ server <- function(input, output, session) {
   # Handle CSV file upload with quality check
   observeEvent(input$file_upload, {
     file <- input$file_upload
-    if (!is.null(file) && !(file$name %in% uploaded_data$files)) {
+    if (!is.null(file)) {
       
       # Load the CSV with consideration for quotes and cleanup of quotes if needed
       new_data <- read_csv(file$datapath, quote = "\"") %>%
@@ -67,31 +65,13 @@ server <- function(input, output, session) {
       } else {
         output$upload_status <- renderText("CSV format incorrect. Required columns missing.")
       }
-    } else {
-      output$upload_status <- renderText("This CSV file has already been uploaded.")
-    }
-  })
-  
-  # Undo last CSV upload
-  observeEvent(input$undo_upload, {
-    if (length(uploaded_data$files) > 0) {
-      uploaded_data$files <- uploaded_data$files[-length(uploaded_data$files)]
-      if (length(uploaded_data$files) > 0) {
-        all_data <- lapply(uploaded_data$files, read_csv)
-        uploaded_data$data <- bind_rows(all_data)
-      } else {
-        uploaded_data$data <- NULL
-      }
-      output$upload_status <- renderText("Last CSV upload undone.")
-    } else {
-      output$upload_status <- renderText("No CSV uploads to undo.")
     }
   })
   
   # Handle GPX file upload
   observeEvent(input$gpx_upload, {
     file <- input$gpx_upload
-    if (!is.null(file) && !(file$name %in% uploaded_data$gpx_files)) {
+    if (!is.null(file)) {
       new_gpx <- st_read(file$datapath, layer = "tracks", quiet = TRUE)
       if (is.null(uploaded_data$gpx_data)) {
         uploaded_data$gpx_data <- new_gpx
@@ -100,24 +80,6 @@ server <- function(input, output, session) {
       }
       uploaded_data$gpx_files <- c(uploaded_data$gpx_files, file$name)
       output$upload_status <- renderText("GPX file uploaded successfully!")
-    } else {
-      output$upload_status <- renderText("This GPX file has already been uploaded.")
-    }
-  })
-  
-  # Undo last GPX upload
-  observeEvent(input$undo_gpx, {
-    if (length(uploaded_data$gpx_files) > 0) {
-      uploaded_data$gpx_files <- uploaded_data$gpx_files[-length(uploaded_data$gpx_files)]
-      if (length(uploaded_data$gpx_files) > 0) {
-        gpx_data <- lapply(uploaded_data$gpx_files, function(file) st_read(file, layer = "tracks", quiet = TRUE))
-        uploaded_data$gpx_data <- do.call(rbind, gpx_data)
-      } else {
-        uploaded_data$gpx_data <- NULL
-      }
-      output$upload_status <- renderText("Last GPX upload undone.")
-    } else {
-      output$upload_status <- renderText("No GPX uploads to undo.")
     }
   })
   
@@ -154,7 +116,7 @@ server <- function(input, output, session) {
   # Name Map with unique color for each Title
   output$name_map <- renderLeaflet({
     req(uploaded_data$data)
-    color_palette <- colorFactor(palette = brewer.pal(n = length(unique(uploaded_data$data$Title)), "Set1"), 
+    color_palette <- colorFactor(palette = brewer.pal(n = 8, "Set1"), 
                                  domain = uploaded_data$data$Title)
     leaflet(uploaded_data$data) %>%
       addTiles(options = tileOptions(maxZoom = 22)) %>%
