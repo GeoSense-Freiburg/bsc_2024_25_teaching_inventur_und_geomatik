@@ -6,9 +6,11 @@ library(ggplot2)
 library(leaflet)
 library(RColorBrewer)
 library(geosphere)
+library(sf)  # for handling spatial data
+library(leaflet.extras)  # for advanced leaflet features
 
-# Initialize a list to store uploaded files and data
-uploaded_data <- reactiveValues(data = NULL, files = character())
+# Initialize reactive values for uploaded data
+uploaded_data <- reactiveValues(data = NULL, files = character(), gpx_data = NULL, gpx_files = character())
 
 # Define UI
 ui <- fluidPage(
@@ -17,7 +19,9 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       fileInput("file_upload", "Upload CSV File", accept = ".csv"),
-      actionButton("undo_upload", "Undo Last Upload"),
+      actionButton("undo_upload", "Undo Last CSV Upload"),
+      fileInput("gpx_upload", "Upload GPX File", accept = ".gpx"),
+      actionButton("undo_gpx", "Undo Last GPX Upload"),
       textOutput("upload_status")
     ),
     
@@ -27,7 +31,8 @@ ui <- fluidPage(
         tabPanel("GPS Precision Plot", plotOutput("data_plot")),
         tabPanel("Sky Cover Map", leafletOutput("data_map")),
         tabPanel("Name Map", leafletOutput("name_map")),
-        tabPanel("Sky Cover vs Distance Plot", plotOutput("trendline_plot"))
+        tabPanel("Sky Cover vs Distance Plot", plotOutput("trendline_plot")),
+        tabPanel("GPX Tracks", leafletOutput("gpx_map"))
       )
     )
   )
@@ -36,71 +41,88 @@ ui <- fluidPage(
 # Define server logic
 server <- function(input, output, session) {
   
-  # Function to handle file upload with quality check
+  # Handle CSV file upload with quality check
   observeEvent(input$file_upload, {
     file <- input$file_upload
-    
-    # Check if the file is already uploaded
     if (!is.null(file) && !(file$name %in% uploaded_data$files)) {
-      
-      # Read the CSV file
       new_data <- read_csv(file$datapath)
-      
-      # Verify columns exist and data quality
       if (all(c("Title", "Description", "Latitude", "Longitude") %in% colnames(new_data))) {
-        # Check Title only has letters A-Z, Description has numbers 1-10
         if (all(grepl("^[A-Z]$", new_data$Title)) &&
             all(as.numeric(new_data$Description) >= 1 & as.numeric(new_data$Description) <= 10)) {
-          
-          # Add new data if it passes checks
           if (is.null(uploaded_data$data)) {
             uploaded_data$data <- new_data
           } else {
             uploaded_data$data <- bind_rows(uploaded_data$data, new_data)
           }
-          
-          # Record the filename
           uploaded_data$files <- c(uploaded_data$files, file$name)
-          output$upload_status <- renderText("File uploaded successfully!")
+          output$upload_status <- renderText("CSV file uploaded successfully!")
         } else {
-          output$upload_status <- renderText("Data validation failed: Title must be A-Z and Description 1-10.")
+          output$upload_status <- renderText("CSV validation failed: Title must be A-Z and Description 1-10.")
         }
       } else {
-        output$upload_status <- renderText("File format incorrect. Required columns missing.")
+        output$upload_status <- renderText("CSV format incorrect. Required columns missing.")
       }
-      
     } else {
-      # Notify about duplicate file
-      output$upload_status <- renderText("This file has already been uploaded.")
+      output$upload_status <- renderText("This CSV file has already been uploaded.")
     }
   })
   
-  # Undo last upload
+  # Undo last CSV upload
   observeEvent(input$undo_upload, {
     if (length(uploaded_data$files) > 0) {
-      # Remove the last file from uploaded files
       uploaded_data$files <- uploaded_data$files[-length(uploaded_data$files)]
-      
-      # Reload data excluding the last upload
       if (length(uploaded_data$files) > 0) {
         all_data <- lapply(uploaded_data$files, read_csv)
         uploaded_data$data <- bind_rows(all_data)
       } else {
         uploaded_data$data <- NULL
       }
-      
-      output$upload_status <- renderText("Last upload undone.")
+      output$upload_status <- renderText("Last CSV upload undone.")
     } else {
-      output$upload_status <- renderText("No uploads to undo.")
+      output$upload_status <- renderText("No CSV uploads to undo.")
     }
   })
   
-  # Display combined data as a table
+  # Handle GPX file upload
+  observeEvent(input$gpx_upload, {
+    file <- input$gpx_upload
+    if (!is.null(file) && !(file$name %in% uploaded_data$gpx_files)) {
+      new_gpx <- st_read(file$datapath, layer = "tracks", quiet = TRUE)
+      if (is.null(uploaded_data$gpx_data)) {
+        uploaded_data$gpx_data <- new_gpx
+      } else {
+        uploaded_data$gpx_data <- rbind(uploaded_data$gpx_data, new_gpx)
+      }
+      uploaded_data$gpx_files <- c(uploaded_data$gpx_files, file$name)
+      output$upload_status <- renderText("GPX file uploaded successfully!")
+    } else {
+      output$upload_status <- renderText("This GPX file has already been uploaded.")
+    }
+  })
+  
+  # Undo last GPX upload
+  observeEvent(input$undo_gpx, {
+    if (length(uploaded_data$gpx_files) > 0) {
+      uploaded_data$gpx_files <- uploaded_data$gpx_files[-length(uploaded_data$gpx_files)]
+      if (length(uploaded_data$gpx_files) > 0) {
+        gpx_data <- lapply(uploaded_data$gpx_files, function(file) st_read(file, layer = "tracks", quiet = TRUE))
+        uploaded_data$gpx_data <- do.call(rbind, gpx_data)
+      } else {
+        uploaded_data$gpx_data <- NULL
+      }
+      output$upload_status <- renderText("Last GPX upload undone.")
+    } else {
+      output$upload_status <- renderText("No GPX uploads to undo.")
+    }
+  })
+  
+  # Display combined CSV data as a table
   output$data_table <- renderDataTable({
+    req(uploaded_data$data)
     uploaded_data$data
   })
   
-  # Create a GPS precision plot based on sky cover
+  # GPS Precision Plot based on sky cover
   output$data_plot <- renderPlot({
     req(uploaded_data$data)
     ggplot(uploaded_data$data, aes(x = Longitude, y = Latitude, color = as.numeric(Description) * 10)) +
@@ -110,7 +132,7 @@ server <- function(input, output, session) {
       labs(title = "GPS Precision vs Sky Cover", color = "Sky Cover (%)", x = "Longitude", y = "Latitude")
   })
   
-  # Create an interactive sky cover map
+  # Sky Cover Map
   output$data_map <- renderLeaflet({
     req(uploaded_data$data)
     leaflet(uploaded_data$data) %>%
@@ -124,14 +146,11 @@ server <- function(input, output, session) {
                 opacity = 1)
   })
   
-  # Create an interactive map with points displayed by name
+  # Name Map with unique color for each Title
   output$name_map <- renderLeaflet({
     req(uploaded_data$data)
-    
-    # Generate color palette for each unique Title
     color_palette <- colorFactor(palette = brewer.pal(n = length(unique(uploaded_data$data$Title)), "Set1"), 
                                  domain = uploaded_data$data$Title)
-    
     leaflet(uploaded_data$data) %>%
       addTiles() %>%
       addCircleMarkers(
@@ -144,33 +163,36 @@ server <- function(input, output, session) {
                 title = "Point Name", opacity = 1)
   })
   
-  # Generate a trendline plot: Sky Cover vs Average Distance to Centroid
+  # Sky Cover vs Distance to Centroid Plot
   output$trendline_plot <- renderPlot({
     req(uploaded_data$data)
-    
-    # Calculate centroids and average distances
     centroid_data <- uploaded_data$data %>%
       group_by(Title) %>%
       summarise(centroid_lat = mean(Latitude), centroid_lon = mean(Longitude))
-    
     data_with_centroids <- uploaded_data$data %>%
       left_join(centroid_data, by = "Title") %>%
       rowwise() %>%
       mutate(distance_to_centroid = distGeo(c(Longitude, Latitude), c(centroid_lon, centroid_lat)))
-    
     variance_data <- data_with_centroids %>%
       group_by(Title) %>%
       summarise(
         avg_sky_cover = mean(as.numeric(Description) * 10, na.rm = TRUE),
         avg_distance = mean(distance_to_centroid, na.rm = TRUE)
       )
-    
-    # Plot the trendline of sky cover vs distance
     ggplot(variance_data, aes(x = avg_sky_cover, y = avg_distance)) +
       geom_point(color = "blue", size = 3) +
       geom_smooth(method = "lm", se = FALSE, color = "red") +
       theme_minimal() +
       labs(title = "Average Distance to Centroid vs Sky Cover", x = "Sky Cover (%)", y = "Average Distance (m)")
+  })
+  
+  # GPX Tracks Map
+  output$gpx_map <- renderLeaflet({
+    req(uploaded_data$gpx_data)
+    leaflet() %>%
+      addTiles() %>%
+      addPolylines(data = uploaded_data$gpx_data, color = "blue", weight = 2, opacity = 0.7) %>%
+      addLegend(position = "bottomright", colors = "blue", labels = "GPX Tracks", opacity = 0.7)
   })
 }
 
