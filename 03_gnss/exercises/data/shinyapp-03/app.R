@@ -51,8 +51,10 @@ server <- function(input, output, session) {
       new_data <- read_csv(file$datapath, quote = "\"") %>%
         mutate(across(where(is.character), ~ str_remove_all(., "^\"|\"$")))
       
+      # Check for required columns and validate data
       if (all(c("Title", "Description", "Latitude", "Longitude") %in% colnames(new_data))) {
         if (all(grepl("^[A-Z]$", new_data$Title)) &&
+            all(!is.na(new_data$Description)) &&
             all(as.numeric(new_data$Description) >= 1 & as.numeric(new_data$Description) <= 10)) {
           if (is.null(uploaded_data$data)) {
             uploaded_data$data <- new_data
@@ -62,7 +64,7 @@ server <- function(input, output, session) {
           uploaded_data$files <- c(uploaded_data$files, file$name)
           output$upload_status <- renderText("CSV file uploaded successfully!")
         } else {
-          output$upload_status <- renderText("CSV validation failed: Title must be A-Z and Description 1-10.")
+          output$upload_status <- renderText("CSV validation failed: Title must be A-Z, Description must be 0-10, and no missing values in Description.")
         }
       } else {
         output$upload_status <- renderText("CSV format incorrect. Required columns missing.")
@@ -167,3 +169,6 @@ server <- function(input, output, session) {
 
 # Run the application
 shinyApp(ui = ui, server = server)
+
+# run the application on shinyapps.io:
+# rsconnect::deployApp('app.R')

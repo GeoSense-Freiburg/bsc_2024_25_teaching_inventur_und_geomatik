@@ -4,6 +4,12 @@ This Shiny application is designed to process and visualize GPS data from CSV an
 
 **Pay attention to only upload the data once!**
 
+Try to answer the following questions at the end:
+
+- which of the points has the lowest accuracy (from what you see on the maps)?
+- Is there a correlation on GNSS accuracy and sky cover? If so, to what extent?
+- Which other factors influence the GNSS signal?
+
 ## Libraries Used
 - `stringr`: String manipulation
 - `shiny`: Web application framework for R
