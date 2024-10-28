@@ -5,18 +5,11 @@
 - App herunterladen: Laden Sie die App Avenza Maps aus dem App Store (iOS) oder Google Play Store (Android) herunter und installieren Sie sie.
 - Registrierung: Optional können Sie ein Konto bei Avenza erstellen, um Ihre Daten synchronisieren zu können. Dies ist für unsere Zwecke **nicht** erforderlich.
 
-## Workflow:
-
-Sie haben die Wahl zwischen zwei Workflows...
-
-- entweder Sie navigieren mittels google maps zu den punkten und laden dort einfach die gpx rein mit den stationen
-- oder sie verwenden hierfür auch AvenzaMaps, dann haben Sie alles in einer App, **müssen aber später "aktive Ebenen" beachten!**
-
 ## 2. Import einer Ebene in Avenza Maps
 
 - Öffnen Sie Avenza Maps und navigieren sie unten auf "Ebenen".
 - Tippen Sie oben rechts auf das ‘+’-Symbol und wählen "Ebenen importieren".
-- Wählen Sie die Datei aus (in unserem Fall "03_gnss.gpx"), und sie wird in Avenza Maps importiert.
+- Wählen Sie die Datei aus (in unserem Fall "03.kmz"), und sie wird in Avenza Maps importiert (oder eben per QR Code).
 - Die Ebene sollte nun in Ihrer Basiskarte angezeigt werden.
 
 Nun sollten Sie die einzelnen Stationen sehen und können dort hinnavigieren. **Jetzt müssen sie darauf achten, dass sie für ihre Messungen eine neue Ebene erstellen und diese als "aktive ebene" deklarieren**:
@@ -50,8 +43,8 @@ Der Pfad wird nun als abgeschlossenes Element gespeichert.
 **Punkt einfügen:**
 
 - **Stellen Sie sicher, dass ihre eigens erstellte, neue Ebene die aktive Ebene ist!!**
-- Tippen Sie während des Rundlaufs auf die Pin-Nadel-Schaltfläche unten rechts, um einen neuen Punkt auf der Karte zu speichern.
-- Ihre aktuelle Position wird automatisch als Punkt markiert.
+- Tippen Sie während des Rundlaufs auf die Pin-Nadel-Schaltfläche unten rechts, um einen neuen Punkt auf der Karte zu speichern. **Achten Sie darauf, dass ihre Position auf ihrem aktuellen Standort ist!!!**
+- Ihre Position wird automatisch als Punkt markiert.
 - Punkte benennen:
     - Nach dem Einfügen des Punktes können Sie ihn benennen, z.B. A, B usw.
     - Beschreibung hinzufügen (Bedeckungsgrad): Dort schreiben sie eine Zahl zw. 1 und 10 hinein (nichts anderes!), das ungefähr den Bedeckungsgrad über ihnen widerspiegelt. Also wenn sie z.b. im Wald stehen unter vielen Bäumen, wäre 8 oder 9 ein realistischer Wert. Unter freiem Himmel wohl eher eine 1 oder 2
@@ -69,6 +62,6 @@ Der Pfad wird nun als abgeschlossenes Element gespeichert.
 
 - Öffnen Sie die Liste der gespeicherten Punkte (unter ‘Meine Karten’ > Punkt-Symbol).
 - Wählen Sie alle Punkte aus, die Sie während der Übung gespeichert haben (NICHT die, die wir ihnen gegeben haben!).
-- Exportieren Sie die Punkte als CSV so, dass Sie sie wieder finden und Zuhause am PC in QGIS einladen können.
+- Exportieren Sie die Punkte als CSV so, dass Sie sie wieder finden!
 
 ## Nun folgen Sie weiter der Anleitung in ex03.pdf
