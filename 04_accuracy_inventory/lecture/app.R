@@ -1,4 +1,3 @@
-# Load necessary libraries
 library(stringr)
 library(shiny)
 library(readr)
@@ -9,6 +8,7 @@ library(RColorBrewer)
 library(geosphere)
 library(sf)  # for handling spatial data
 library(leaflet.extras)  # for advanced leaflet features
+library(markdown)
 
 # Initialize reactive values for uploaded data
 uploaded_data <- reactiveValues(data = NULL, files = character(), gpx_data = NULL, gpx_files = character())
@@ -26,6 +26,8 @@ ui <- fluidPage(
     
     mainPanel(
       tabsetPanel(
+        tabPanel("Instructions", 
+                 includeMarkdown("instructions.md")),
         tabPanel("Table View", dataTableOutput("data_table")),
         tabPanel("GPS Precision Plot", plotOutput("data_plot")),
         tabPanel("Sky Cover Map", leafletOutput("data_map")),
