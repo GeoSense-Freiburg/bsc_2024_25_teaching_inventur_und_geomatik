@@ -12,7 +12,15 @@
 
 ## Block Nachmittags (Max): Feldübung zu GNSS
 
-**Gruppen zu 2 Personen**
+### Grober Ablauf:
+
+- Start 14:15
+- ca. 15-20 Minuten Einführung in Emlid Reach Base und Rover
+- Eigenständig den Rundlauf (ca. 1,5h) absolvieren und mittels Avenza Maps die Punkte und den Pfad tracken.
+- Nach der Übung direkt die CSV und GPX online hochladen und Ergebnisse anschauen
+- CSV und GPX an Max per Mail senden (als Backup falls die online App nicht funktionieren sollte)
+
+### Gruppen zu 2 Personen:
 
 - Einführung in EmlidReach, Base, Rover (vor der Übung)
 - __Stationslauf um Schloßberg mit Smartphone GNSS__: Eine Person trackt den Pfad, eine Person misst verschiedene Punkte (z.b. Bäume oder Ecken von Gebäuden) ein
