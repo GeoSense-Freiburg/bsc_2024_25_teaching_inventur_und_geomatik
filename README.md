@@ -29,6 +29,39 @@ Also getreu dem Schema:
 
 # News
 
+folder: (03_gnss)
+
+## Block Vormittags (Thomas P.):
+
+- Positionsbestimmung
+- Einführung Satellitebasierte Positionsbetimmung
+- Warum Positionsbestimmung für Inventuren wichtig?
+- GPS, GLONASS, BEIDOU, GALILEO +
+- GNSS Unsicherheiten und Einflussfaktoren
+- Hemispähre, Nord, Süd, An welcher Himmelsseite Bäume messen?
+- Abstand/Abschattung von Bäumen
+- GNSS Unsicherheiten minimieren
+- RTK, SAPOS, Rover, Base station, Postprocessing
+
+## Block Nachmittags (Max)
+- Feldübung zu GNSS
+- Gruppen zu 2 Personen
+    - Eine Person trackt, eine misst punkte ein (Rundlauf um schloßberg)
+- Einführung in EmlidReach, Base, Rover (vor der Übung)
+
+Was ihr braucht:
+
+- **Wetterfeste Kleidung**
+- Smartphone
+- Avenza Maps App (bitte downloaden!)
+- Unterlagen im Ordner 03_gnss/exercises
+
+**Treffpunkt hinter dem Kanonenplatz (https://maps.app.goo.gl/1t6J6wnk2cSg4bkt7) pünktlich um 14:15 Uhr (bitte seid vorher da, damit wir direkt starten können).**
+
+--------------------------
+
+folder (02_essentials)
+
 ## 23.10.2024: Block Vormittag (Thomas P.):
 
 ### Theorie bzw. Einführung Forstliche Inventuren
