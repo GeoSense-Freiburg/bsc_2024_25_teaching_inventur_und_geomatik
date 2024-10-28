@@ -29,7 +29,9 @@ Also getreu dem Schema:
 
 # News
 
-folder: (03_gnss)
+## 30.10.2024
+
+folder: 03_gnss
 
 ## Block Vormittags (Thomas P.):
 
@@ -44,6 +46,7 @@ folder: (03_gnss)
 - RTK, SAPOS, Rover, Base station, Postprocessing
 
 ## Block Nachmittags (Max)
+
 - Feldübung zu GNSS
 - Gruppen zu 2 Personen
     - Eine Person trackt, eine misst punkte ein (Rundlauf um schloßberg)
