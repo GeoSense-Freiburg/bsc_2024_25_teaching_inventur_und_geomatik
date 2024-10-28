@@ -2,6 +2,8 @@
 
 This Shiny application is designed to process and visualize GPS data from CSV and GPX files. It provides multiple interactive features to analyze and display the data.
 
+**Pay attention to only upload the data once!**
+
 ## Libraries Used
 - `stringr`: String manipulation
 - `shiny`: Web application framework for R
