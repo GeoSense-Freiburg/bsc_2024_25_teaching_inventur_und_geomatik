@@ -2,7 +2,7 @@ library(dplyr)
 library(readr)
 
 # Read the example dataset
-example_data <- read_csv("/Users/maximilianfabi/Desktop/_repos/bsc_2024_25_teaching_inventur_und_geomatik/04_accuracy_inventory/data/csv-files/group1.csv")
+example_data <- read_csv("/Users/maximilianfabi/Desktop/_repos/bsc_2024_25_teaching_inventur_und_geomatik/04_accuracy_inventory/data/csv-files/03.csv")
 
 # Function to add noise to latitude and longitude
 generate_noise <- function(lat, lon, obscurance, max_dist = 10) {

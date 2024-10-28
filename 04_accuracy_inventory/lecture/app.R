@@ -1,4 +1,5 @@
 # Load necessary libraries
+library(stringr)
 library(shiny)
 library(readr)
 library(dplyr)
@@ -45,7 +46,11 @@ server <- function(input, output, session) {
   observeEvent(input$file_upload, {
     file <- input$file_upload
     if (!is.null(file) && !(file$name %in% uploaded_data$files)) {
-      new_data <- read_csv(file$datapath)
+      
+      # Load the CSV with consideration for quotes and cleanup of quotes if needed
+      new_data <- read_csv(file$datapath, quote = "\"") %>%
+        mutate(across(where(is.character), ~ str_remove_all(., "^\"|\"$")))
+      
       if (all(c("Title", "Description", "Latitude", "Longitude") %in% colnames(new_data))) {
         if (all(grepl("^[A-Z]$", new_data$Title)) &&
             all(as.numeric(new_data$Description) >= 1 & as.numeric(new_data$Description) <= 10)) {
@@ -136,7 +141,7 @@ server <- function(input, output, session) {
   output$data_map <- renderLeaflet({
     req(uploaded_data$data)
     leaflet(uploaded_data$data) %>%
-      addTiles() %>%
+      addTiles(options = tileOptions(maxZoom = 22)) %>%
       addCircleMarkers(~Longitude, ~Latitude,
                        color = ~colorNumeric("YlOrRd", as.numeric(Description) * 10)(as.numeric(Description) * 10),
                        popup = ~paste("Title:", Title, "<br>", "Sky Cover:", as.numeric(Description) * 10, "%")) %>%
@@ -152,7 +157,7 @@ server <- function(input, output, session) {
     color_palette <- colorFactor(palette = brewer.pal(n = length(unique(uploaded_data$data$Title)), "Set1"), 
                                  domain = uploaded_data$data$Title)
     leaflet(uploaded_data$data) %>%
-      addTiles() %>%
+      addTiles(options = tileOptions(maxZoom = 22)) %>%
       addCircleMarkers(
         ~Longitude, ~Latitude,
         color = ~color_palette(Title),
@@ -190,7 +195,7 @@ server <- function(input, output, session) {
   output$gpx_map <- renderLeaflet({
     req(uploaded_data$gpx_data)
     leaflet() %>%
-      addTiles() %>%
+      addTiles(options = tileOptions(maxZoom = 22)) %>%
       addPolylines(data = uploaded_data$gpx_data, color = "blue", weight = 2, opacity = 0.7) %>%
       addLegend(position = "bottomright", colors = "blue", labels = "GPX Tracks", opacity = 0.7)
   })
