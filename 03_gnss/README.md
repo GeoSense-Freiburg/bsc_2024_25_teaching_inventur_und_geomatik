@@ -10,7 +10,7 @@
 - Abstand/Abschattung von Bäumen
 - RTK, SAPOS, Rover, Base station, Postprocessing
 
-## Block Nachmittags (Max, Teja, Thomas P., Uwe U.): Feldübung zu GNSS
+## Block Nachmittags (Max): Feldübung zu GNSS
 
 **Gruppen zu 2 Personen**
 
@@ -19,4 +19,5 @@
   - Einfluss des Canopies verstehen
   - Genauigkeit von GNSS verstehen
   - Messungen werden am Folgetermin verglichen (Varianz)
-- Stationslauf als **GeoPackage (1x Linienlayer des getrackten Pfades, 1x Punktlayer der eingemessenen Punkte, alles in WGS84 (EPSG: 4326))** per Mail an maximilian.fabi@geosense.uni-freiburg.de bis **spätestens Montag 09:00 Uhr 04.11.24**
+- Stationslauf als **ZIP-Datei (GPX und CSV)** per Mail an maximilian.fabi@geosense.uni-freiburg.de bis **spätestens Montag 09:00 Uhr 04.11.24**
+- parallel dazu upload in shinyapp und in real-time Ergebnisse verfolgen
