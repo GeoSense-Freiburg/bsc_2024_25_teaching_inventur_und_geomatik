@@ -46,29 +46,32 @@ server <- function(input, output, session) {
   observeEvent(input$file_upload, {
     file <- input$file_upload
     if (!is.null(file)) {
-      
-      # Load the CSV with consideration for quotes and cleanup of quotes if needed
-      new_data <- read_csv(file$datapath, quote = "\"") %>%
-        mutate(across(where(is.character), ~ str_remove_all(., "^\"|\"$")))
-      
-      # Check for required columns and validate data
-      if (all(c("Title", "Description", "Latitude", "Longitude") %in% colnames(new_data))) {
-        if (all(grepl("^[A-Z]$", new_data$Title)) &&
-            all(!is.na(new_data$Description)) &&
-            all(as.numeric(new_data$Description) >= 1 & as.numeric(new_data$Description) <= 10)) {
-          if (is.null(uploaded_data$data)) {
-            uploaded_data$data <- new_data
+      tryCatch({
+        # Load the CSV with consideration for quotes and cleanup of quotes if needed
+        new_data <- read_csv(file$datapath, quote = "\"") %>%
+          mutate(across(where(is.character), ~ str_remove_all(., "^\"|\"$")))
+        
+        # Check for required columns and validate data
+        if (all(c("Title", "Description", "Latitude", "Longitude") %in% colnames(new_data))) {
+          if (all(grepl("^[A-Z]$", new_data$Title)) &&
+              all(!is.na(new_data$Description)) &&
+              all(as.numeric(new_data$Description) >= 1 & as.numeric(new_data$Description) <= 10)) {
+            if (is.null(uploaded_data$data)) {
+              uploaded_data$data <- new_data
+            } else {
+              uploaded_data$data <- bind_rows(uploaded_data$data, new_data)
+            }
+            uploaded_data$files <- c(uploaded_data$files, file$name)
+            output$upload_status <- renderText("CSV file uploaded successfully!")
           } else {
-            uploaded_data$data <- bind_rows(uploaded_data$data, new_data)
+            output$upload_status <- renderText("CSV validation failed: Title must be A-Z, Description must be 0-10, and no missing values in Description.")
           }
-          uploaded_data$files <- c(uploaded_data$files, file$name)
-          output$upload_status <- renderText("CSV file uploaded successfully!")
         } else {
-          output$upload_status <- renderText("CSV validation failed: Title must be A-Z, Description must be 0-10, and no missing values in Description.")
+          output$upload_status <- renderText("CSV format incorrect. Required columns missing.")
         }
-      } else {
-        output$upload_status <- renderText("CSV format incorrect. Required columns missing.")
-      }
+      }, error = function(e) {
+        output$upload_status <- renderText(paste("Error in uploading CSV file:", e$message))
+      })
     }
   })
   
@@ -76,14 +79,18 @@ server <- function(input, output, session) {
   observeEvent(input$gpx_upload, {
     file <- input$gpx_upload
     if (!is.null(file)) {
-      new_gpx <- st_read(file$datapath, layer = "tracks", quiet = TRUE)
-      if (is.null(uploaded_data$gpx_data)) {
-        uploaded_data$gpx_data <- new_gpx
-      } else {
-        uploaded_data$gpx_data <- rbind(uploaded_data$gpx_data, new_gpx)
-      }
-      uploaded_data$gpx_files <- c(uploaded_data$gpx_files, file$name)
-      output$upload_status <- renderText("GPX file uploaded successfully!")
+      tryCatch({
+        new_gpx <- st_read(file$datapath, layer = "tracks", quiet = TRUE)
+        if (is.null(uploaded_data$gpx_data)) {
+          uploaded_data$gpx_data <- new_gpx
+        } else {
+          uploaded_data$gpx_data <- rbind(uploaded_data$gpx_data, new_gpx)
+        }
+        uploaded_data$gpx_files <- c(uploaded_data$gpx_files, file$name)
+        output$upload_status <- renderText("GPX file uploaded successfully!")
+      }, error = function(e) {
+        output$upload_status <- renderText(paste("Error in uploading GPX file:", e$message))
+      })
     }
   })
   
@@ -171,4 +178,4 @@ server <- function(input, output, session) {
 shinyApp(ui = ui, server = server)
 
 # run the application on shinyapps.io:
-# rsconnect::deployApp('app.R')
+# rsconnect::deployApp()
