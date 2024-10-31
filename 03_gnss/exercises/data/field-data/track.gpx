@@ -1,0 +1,143 @@
+<?xml version="1.0"?>
+    <gpx version="1.1"
+    creator="Avenza Maps - https://www.avenzamaps.com/maps/how-it-works.html"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://www.topografix.com/GPX/1/1"
+xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<wpt lat="47.9940926913453" lon="7.85886281008913">
+    <ele>371.353</ele>
+    <time>2024-10-30T14:50:05+01:00</time>
+    <name><![CDATA[A]]></name>
+    <desc><![CDATA[Northing:6105872.12547142
+Easting:874844.606233316
+Description:3]]></desc>
+</wpt>
+<wpt lat="47.9942164942958" lon="7.85932000379851">
+    <ele>384.888</ele>
+    <time>2024-10-30T14:54:20+01:00</time>
+    <name><![CDATA[B]]></name>
+    <desc><![CDATA[Northing:6105892.71953777
+Easting:874895.500804239
+Description:6]]></desc>
+</wpt>
+<wpt lat="47.9941460424437" lon="7.85939557947524">
+    <ele>385.438</ele>
+    <time>2024-10-30T14:56:40+01:00</time>
+    <name><![CDATA[C]]></name>
+    <desc><![CDATA[Northing:6105881.00018165
+Easting:874903.913850089
+Description:8]]></desc>
+</wpt>
+<wpt lat="47.9940871349534" lon="7.85926380170573">
+    <ele>381.28</ele>
+    <time>2024-10-30T14:57:40+01:00</time>
+    <name><![CDATA[D]]></name>
+    <desc><![CDATA[Northing:6105871.20119167
+Easting:874889.244415889
+Description:4]]></desc>
+</wpt>
+<wpt lat="47.994178974205" lon="7.85918765952833">
+    <ele>381.511</ele>
+    <time>2024-10-30T14:58:50+01:00</time>
+    <name><![CDATA[E]]></name>
+    <desc><![CDATA[Northing:6105886.47823348
+Easting:874880.768307473
+Description:7]]></desc>
+</wpt>
+<wpt lat="47.9938353988637" lon="7.86003603119611">
+    <ele>378.66</ele>
+    <time>2024-10-30T15:05:04+01:00</time>
+    <name><![CDATA[F]]></name>
+    <desc><![CDATA[Northing:6105829.32617747
+Easting:874975.208609534
+Description:10]]></desc>
+</wpt>
+<wpt lat="47.9948349756862" lon="7.86219074060057">
+    <ele>429.265</ele>
+    <time>2024-10-30T15:14:02+01:00</time>
+    <name><![CDATA[G]]></name>
+    <desc><![CDATA[Northing:6105995.60188713
+Easting:875215.069763246
+Description:2]]></desc>
+</wpt>
+<wpt lat="47.9950194582334" lon="7.86198779475667">
+    <ele>430.775</ele>
+    <time>2024-10-30T15:15:38+01:00</time>
+    <name><![CDATA[H]]></name>
+    <desc><![CDATA[Northing:6106026.29019214
+Easting:875192.477935244
+Description:0]]></desc>
+</wpt>
+<wpt lat="47.9954013873601" lon="7.86423122523589">
+    <ele>435.155</ele>
+    <time>2024-10-30T15:20:03+01:00</time>
+    <name><![CDATA[I]]></name>
+    <desc><![CDATA[Northing:6106089.82369186
+Easting:875442.215473822
+Description:5]]></desc>
+</wpt>
+<wpt lat="47.9955369958449" lon="7.86396431618375">
+    <ele>436.715</ele>
+    <time>2024-10-30T15:21:35+01:00</time>
+    <name><![CDATA[J]]></name>
+    <desc><![CDATA[Northing:6106112.3821307
+Easting:875412.503294049
+Description:4]]></desc>
+</wpt>
+<wpt lat="47.9973897696682" lon="7.86725904356728">
+    <ele>465.973</ele>
+    <time>2024-10-30T15:30:32+01:00</time>
+    <name><![CDATA[K]]></name>
+    <desc><![CDATA[Northing:6106420.59654939
+Easting:875779.270668686
+Description:8]]></desc>
+</wpt>
+<wpt lat="47.9970664218243" lon="7.86616354188714">
+    <ele>453.291</ele>
+    <time>2024-10-30T15:33:28+01:00</time>
+    <name><![CDATA[L]]></name>
+    <desc><![CDATA[Northing:6106366.80587962
+Easting:875657.31997949
+Description:8]]></desc>
+</wpt>
+<wpt lat="47.9965446329894" lon="7.86567783481506">
+    <ele>450.331</ele>
+    <time>2024-10-30T15:25:32+01:00</time>
+    <name><![CDATA[M]]></name>
+    <desc><![CDATA[Northing:6106280.00418433
+Easting:875603.251315551
+Description:3]]></desc>
+</wpt>
+<wpt lat="47.9973592339128" lon="7.86588468888789">
+    <ele>437.246</ele>
+    <time>2024-10-30T15:37:08+01:00</time>
+    <name><![CDATA[N]]></name>
+    <desc><![CDATA[Northing:6106415.51674623
+Easting:875626.278205607
+Description:9]]></desc>
+</wpt>
+<wpt lat="47.9968440306577" lon="7.86500788028239">
+    <ele>420.435</ele>
+    <time>2024-10-30T15:39:22+01:00</time>
+    <name><![CDATA[O]]></name>
+    <desc><![CDATA[Northing:6106329.81009705
+Easting:875528.67231812
+Description:8]]></desc>
+</wpt>
+<wpt lat="47.9950460316572" lon="7.85949296336805">
+    <ele>374.854</ele>
+    <time>2024-10-30T15:49:31+01:00</time>
+    <name><![CDATA[P]]></name>
+    <desc><![CDATA[Northing:6106030.71063739
+Easting:874914.754575448
+Description:7]]></desc>
+</wpt>
+<wpt lat="47.9942738656858" lon="7.85805565604495">
+    <ele>351.687</ele>
+    <time>2024-10-30T14:45:39+01:00</time>
+    <name><![CDATA[Q]]></name>
+    <desc><![CDATA[Northing:6105902.26302831
+Easting:874754.754256127
+Description:2]]></desc>
+</wpt>
+</gpx>

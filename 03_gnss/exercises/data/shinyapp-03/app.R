@@ -55,7 +55,7 @@ server <- function(input, output, session) {
         if (all(c("Title", "Description", "Latitude", "Longitude") %in% colnames(new_data))) {
           if (all(grepl("^[A-Z]$", new_data$Title)) &&
               all(!is.na(new_data$Description)) &&
-              all(as.numeric(new_data$Description) >= 1 & as.numeric(new_data$Description) <= 10)) {
+              all(as.numeric(new_data$Description) >= 0 & as.numeric(new_data$Description) <= 10)) {
             if (is.null(uploaded_data$data)) {
               uploaded_data$data <- new_data
             } else {
