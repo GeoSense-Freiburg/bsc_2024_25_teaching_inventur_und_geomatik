@@ -8,4 +8,4 @@
 *.pyc
 
 # ignore .DS_Store files created on mac
-*.DS_Store
+.DS_Store
