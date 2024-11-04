@@ -9,6 +9,7 @@ Try to answer the following questions at the end:
 - which of the points has the lowest accuracy (from what you see on the maps)?
 - Is there a correlation on GNSS accuracy and sky cover? If so, to what extent? If not, why not? What did we forget?
 - Which other factors influence the GNSS signal?
+- which factors influenced your measurements? Is it consistent?
 
 ## Libraries Used
 - `stringr`: String manipulation
