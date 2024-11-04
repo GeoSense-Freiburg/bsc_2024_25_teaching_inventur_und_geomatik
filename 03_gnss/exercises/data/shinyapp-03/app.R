@@ -129,7 +129,7 @@ server <- function(input, output, session) {
                x = max(variance_data$avg_sky_cover), 
                y = max(variance_data$avg_distance),
                label = paste("r =", 
-                             round(cor.test(variance_data$avg_distance, variance_data$avg_sky_cover)$p.value, 2)), 
+                             round(cor.test(variance_data$avg_distance, variance_data$avg_sky_cover, method="pearson")$estimate, 2)), 
                hjust = 2, 
                vjust = 2, 
                color = "black") +
