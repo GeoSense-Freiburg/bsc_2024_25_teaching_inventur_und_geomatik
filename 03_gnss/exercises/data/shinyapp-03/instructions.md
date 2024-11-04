@@ -7,7 +7,7 @@ This Shiny application is designed to process and visualize GPS data from CSV an
 Try to answer the following questions at the end:
 
 - which of the points has the lowest accuracy (from what you see on the maps)?
-- Is there a correlation on GNSS accuracy and sky cover? If so, to what extent?
+- Is there a correlation on GNSS accuracy and sky cover? If so, to what extent? If not, why not? What did we forget?
 - Which other factors influence the GNSS signal?
 
 ## Libraries Used
