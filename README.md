@@ -31,6 +31,8 @@ Also getreu dem Schema:
 
 ## 06.11.2024 (Feldtag)
 
+folder: 04_accuracy_inventory
+
 ### Feldtag (Max, Teja, Jon): 10:00-14:00 +-
 
 - Nachbesprechung Feldübung Positionsbestimmung
