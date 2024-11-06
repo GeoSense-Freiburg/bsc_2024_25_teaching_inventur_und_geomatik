@@ -29,6 +29,10 @@ Also getreu dem Schema:
 
 # News
 
+## 13.11.2024 (Max)
+
+- bitte bringt eure Laptops mit und habt RStudio installiert!
+
 ## 06.11.2024 (Feldtag)
 
 folder: 04_accuracy_inventory
@@ -51,6 +55,7 @@ folder: 04_accuracy_inventory
 ### Hausaufgabe
 
 - Inventur-Metriken (z.B. Stammdichte, BHD, Grundfläche) berechnen und einsenden (z.B. Google-Sheet)
+- **siehe folder 04 readme**
 
 -----------------------
 
