@@ -31,7 +31,17 @@ Also getreu dem Schema:
 
 ## 13.11.2024 (Max)
 
+(05_uncertainties)
+
 - bitte bringt eure Laptops mit und habt RStudio installiert!
+
+### Vorlesung und Übung:
+
+- Nachbesprechung Inventur
+- Vergleich der Inventur-Metriken pro Plot der verschiedenen Gruppen
+- Einführung Stichprobenunsicherheit 
+- Einführung Vollinventur-Daten Ettenheim
+- Einführung R-Script zum Stichproben ziehen
 
 ## 06.11.2024 (Feldtag)
 
