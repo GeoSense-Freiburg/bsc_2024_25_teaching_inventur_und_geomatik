@@ -6,28 +6,70 @@ Start 16.10.24
 
 **Mi: 10-12 Uhr (HS 3118 KGIII) + 14:00-16:00 (HS HH5 → Kristallographie - nur bei Bedarf und Ankündigung)**
 
-- Laptop mitbringen. Falls nicht vorhanden im Team
-- Qgis (3.34 LTR version!) und Rstudio installieren
+**Klausurtermin: 05.03.2025, 09-12 Uhr, Hörsaal Anatomie (Albertstr. 17)**
 
-Hier im Github finden sie alle unterlagen zum Kurs. Die Themen sind durchnummeriert und bekommen wöchentlich einen neuen Ordner + Nummer.
-Generell wird es immer eine README.md Datei in jedem dieser Ordner geben,
-worin sie auf github dann direkt sehen, worum es geht. Im Ordner "lecture" gibt es Folien und Vorlesungsmaterial, im Ordner "exercises"
-gibt es dann die Übungen dazu zum herunterladen.
+## Vorläufige Agenda:
 
-Also getreu dem Schema:
-```
-01_intro
--- lecture
--- -- beispielfolie.pdf
--- -- ...
--- exercise
--- -- übung_1
--- -- ...
--- README.md
-```
+1. Einführung in das Modul
+2. Theorie forstliche Inventuren 
+3. Positionsbestimmung GNSS                             (Feldübung)
+4. Feldübung Inventur Mooswald                          (Feldübung)
+5. Stichprobenunsicherheiten
+6. Allometrien
+7. Einführung Drohnenfernerkundung                      (Feldübung)
+8. LIDAR Daten
+9. Einführung KI Inventur
+10. KI Inventur (Teil 2)
+11. deadtrees.earth
+12. deadtrees.earth (Teil 2)
+13. Einführung großflächige Waldinformationsprodukte
+14. Zusammenfassung und Klausurbesprechung
+
 --------------------
 
 # News
+
+## 27.11.2024 (FELDTAG)
+
+(07_satelliteimagery)
+
+**Bitte festes Schuhwerk und warme Kleidung!**
+
+- 10:15-14:00 +-
+- Treffpunkt pünktlich(!) an der Vogelsanghütte (bei Ebnet):
+
+https://maps.app.goo.gl/tZVoGPWRAtX9x6Vx5
+
+**Mit dem Fahrrad sind es ca. 20 Minuten vom Herderbau, mit Öffis + zu Fuß etwa 45 min**
+
+### Feldtag! (Max, Teja)
+
+- Einführung Fernerkundungsdaten
+- Plattformen: Drohnen, Flugzeuge, Satelliten, Vorteile, Nachteile
+- Sensoren: Vorteile, Nachteile
+- Geodatenprodukte (Vektor, Raster)
+- Vorführung Drohnen + TLS
+- Stationen zu Thermal, LiDAR, Multispektral
+
+------------------------------
+
+## 20.11.2024
+
+(06_allometries)
+
+### Lecture (Thomas S.): Allometrien
+
+- Einführung und Historie
+- Abschätzung von Holzvorrat, Biomasse, Modellierung, Prognosen, …
+- Einflussfaktoren auf Allometrien (Bestandesdichte, Management, Standortfaktoren, etc…)
+- Von DBH → Biomasse/Holzvorrat (benötigt für Übungen)
+
+### Exercise: Allometrien und Holzvorrat in R (Max, Teja)
+
+- Allometrien auf Vollinventur ECOSENSE anwenden auf Basis der R-Skripte der Vorherige Woche
+- Einfluss von Stichprobenunsicherheiten auf Allometrien bewerten und diskutieren
+
+--------------------------
 
 ## 13.11.2024 (Max)
 
