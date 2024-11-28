@@ -29,6 +29,16 @@ Start 16.10.24
 
 # News
 
+## 04.12.2024
+
+(08_droneslidar)
+
+- Inventur per Drohne
+- Vorstellung LiDAR Datenprozessierung
+- Vorstellung AgiSoft Metashape (kurz)
+- Vorstellung der Geodatenprodukte
+- Einführung in lidR package
+
 ## 27.11.2024 (FELDTAG)
 
 (07_satelliteimagery)
