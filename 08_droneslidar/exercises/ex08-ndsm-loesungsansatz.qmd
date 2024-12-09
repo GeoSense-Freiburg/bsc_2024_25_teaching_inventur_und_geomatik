@@ -1,0 +1,301 @@
+---
+title: "ex08-ndsm"
+author: "Maximilian Fabi (maximilian.fabi@geosense.uni-freiburg.de)"
+web: "https://www.geosense.uni-freiburg.de"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+format:
+  html:
+    code-block-bg: true
+    self-contained: true
+  pdf:
+    df-print: kable
+execute:
+  echo: true
+  warning: false
+editor: visual
+---
+
+# UAV and TLS nDSM data management
+
+What is a DTM? What is a DEM? What is a DSM? And what is an nDSM? These should all be familiar to you. If not, you will definetly know more about these after this exercise!
+
+Important terms/abbreviations today which we can clarify now:
+
+-   DTM –\> digital terrain model (bare earth surface without objects)
+
+-   DSM -\> digital surface model (includes objects, thus higher elevation)
+
+-   nDSM -\> normalized digital surface model (only the object heights)
+
+-   UAV -\> unmanned aerial vehicle (drones in our case)
+
+-   TLS -\> terrestrial laser scanning
+
+![](images/ea610_05_gr.gif){fig-align="center" width="400"}
+
+(image source: <https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.berlin.de%2Fumweltatlas%2Fen%2Fland-use%2Fbuilding-heights%2F2012%2Fmethodology%2F&psig=AOvVaw3qvCsAocj874u_rQCNh7Rh&ust=1732198164866000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCJCYhpaL64kDFQAAAAAdAAAAABAw>)
+
+# **Agenda for todays exercise:**
+
+1.  load point cloud from UAV (drone data)
+2.  plot point cloud and pan/zoom around to get a feeling for point cloud data
+3.  classify ground points and interpolate to get ground elevation –\> DTM (digital terrain model)
+4.  calculate the DSM from the point cloud
+5.  subtract the two to get an nDSM
+
+Then do the same for TLS data and in addition:
+
+1.  histogram of z values side by side from UAV and TLS data
+
+# load packages
+
+```{r}
+#install.packages(c("lidR","RCSF", "raster"))
+library(lidR)
+library(RCSF)
+library(raster)
+```
+
+```{r}
+# set working directory (where your files are!)
+# this is how it looks for me
+wdir <- "/Volumes/unfnrd02/teaching/data/ecosense_lidar/l2_60m_gassilloud_2024/"
+```
+
+## load point cloud
+
+```{r}
+pc_uav <- readLAS(paste0(wdir,"sommer_cut_out_segmentanytree_lowres03.laz"))
+```
+
+## point cloud statistics, plot point cloud and pan/zoom
+
+```{r}
+summary(pc_uav)    # get a summary of the point cloud data
+plot(pc_uav, axis=TRUE)       # plot the point cloud
+```
+
+## How do we arrive at the nDSM?
+
+First, we need to make sure to have the actual elevation of the tree tops, which gives us our digital surface model (DSM). Then, we need to have the ground as a digital terrain model (DTM). With these two, we can simply subtract one from another and receive our nDSM.
+
+```{r}
+# first step: classify ground points
+mycsf <- csf(TRUE, 1, 1, time_step = 1)
+pc_uav <- classify_ground(pc_uav, mycsf)
+```
+
+This line creates a CSF algorithm object and passes it into the ground classification function with specific parameters:
+
+-   **`TRUE`**: This enables slope post-processing, which helps to refine the classification in sloped areas
+
+-   **`1`**: This sets the cloth resolution to 1 meter. A smaller value increases precision but also processing time
+
+-   **`1`**: This sets the classification threshold to 1 meter. Points within this distance from the simulated cloth are classified as ground
+
+-   **`time_step = 1`**: This parameter controls the simulation speed. A larger value speeds up the process but may reduce accuracy
+
+```{r}
+# have a look at the classified ground points
+# filter_poi: this is a function from the lidR package to filter the point cloud in various ways
+ground_points <- filter_poi(pc_uav, Classification == 2)    # ground points are classified as "2"
+plot(ground_points, axis = TRUE)
+```
+
+Now we rasterize the ground points to receive a 2d DTM:
+
+```{r}
+# knn: k-nearest neighbor search
+# idw: interpolation technique (you may know Kriging ? )
+dtm <- rasterize_terrain(pc_uav, 1, knnidw(k = 6L, p = 2))
+dtm
+```
+
+```{r}
+plot(dtm)
+```
+
+One quick question: **Are the terms IDW (or Kriging) familiar to you? If not, please quickly google them!**
+
+We can do the same for the canopy:
+
+```{r}
+#algorithm = p2r(): The algorithm used for creating the DSM.
+#p2r() stands for "points to raster" and is a simple algorithm that assigns the highest point #in each cell to the raster value.
+dsm <- rasterize_canopy(pc_uav, res = 1, algorithm = p2r())
+dsm
+```
+
+```{r}
+plot(dsm)
+```
+
+Subtract the two and then we finally have our nDSM:
+
+```{r}
+ndsm <- dsm-dtm
+ndsm
+```
+
+```{r}
+plot(ndsm)
+```
+
+```{r}
+ndsm_values <- as.vector(ndsm)
+
+hist(ndsm_values, 
+     breaks = 50,
+     main = "Histogram of nDSM Z Values",
+     xlab = "Height (m)",
+     ylab = "Frequency",
+     col = "skyblue",
+     border = "white")
+
+```
+
+## Now that you know how to do this with the UAV data, it is your task to do that on the TLS data (in a minor version for compatibility of all your PCs):
+
+Load the subset datasets for this exercise as they should work fine on all computers :)
+
+```{r}
+pc_tls_subset <- readLAS(paste0(wdir,"ecosense_tls/2024-10-15ecosense-ds-subset50x50-20cm.las"))
+pc_uav_subset <- readLAS(paste0(wdir,"lowres02-subset.las"))
+
+# align point clouds (the tls point cloud is slightly below the uav point cloud --> why?)
+# Calculate mean Z difference
+mean_diff <- min(pc_uav_subset@data$Z) - min(pc_tls_subset@data$Z)
+
+# Adjust TLS heights
+pc_tls_subset@data$Z <- pc_tls_subset@data$Z + mean_diff
+```
+
+## Here are your tasks
+
+1.  We/you will use the subset datasets, first make sure that you also create an ndsm again for the small subset for the UAV data (or crop it for the comparison later):
+
+```{r}
+# ndsm creation by yourself with the small dataset (recapitulate the steps above, copy, paste)
+# classify ground
+# first step: classify ground points
+mycsf <- csf(TRUE, .5, .5, time_step = 1)
+pc_uav_subset <- classify_ground(pc_uav_subset, mycsf)
+# create dtm
+# knn: k-nearest neighbor search
+# idw: interpolation technique (you may know Kriging?)
+dtm <- rasterize_terrain(pc_uav_subset, .5, knnidw(k = 6L, p = 2))
+dtm
+# create dsm
+dsm <- rasterize_canopy(pc_uav_subset, res = .5, algorithm = p2r())
+# calculate ndsm
+ndsm_uav <- dsm - dtm
+
+plot(ndsm_uav)
+
+# Detect tree tops
+tree_tops <- find_trees(ndsm_uav, lmf(ws = 5))
+# Add tree tops as red dots
+plot(tree_tops, add = TRUE, col = "red", pch = 20)
+
+
+
+```
+
+2.  TLS data nDSM:
+
+```{r}
+# create an ndsm from the tls subset
+# classify ground
+pc_tls_subset <- classify_ground(pc_tls_subset, mycsf)
+# create dtm
+dtm <- rasterize_terrain(pc_tls_subset, res=.5, knnidw(k=6L, p=2))
+# create dsm
+dsm <- rasterize_canopy(pc_tls_subset, res=.5, p2r())
+# calculate ndsm
+ndsm_tls <- dsm - dtm
+plot(ndsm_tls)
+```
+
+3.  create a side by side comparison of the z values from both the UAV nDSM and the TLS nDSM and try to tell the difference. Maybe subtracting the two? Maybe histograms? Try and find a good way to visualize and quantify this
+
+```{r}
+## at first some hints and tipps and tricks, and then you do the further work
+# e.g. first make two plots in one window and look at the difference of the two point clouds
+# you could now make a small diagonal transect (a small stripe) to see the points and get an even better feeling for it
+# Get min and max x values
+x_min <- min(pc_tls_subset@data$X)
+x_max <- max(pc_tls_subset@data$X)
+
+# Get min and max y values
+y_min <- min(pc_tls_subset@data$Y)
+y_max <- max(pc_tls_subset@data$Y)
+
+# start and end points of the transect
+s <- c(x_min, y_min)
+e <- c(x_max, y_max)
+
+# transect width
+width <- 5
+
+# 2D cross section 
+tls_trans2d <- clip_transect(pc_tls_subset, s, e, width = width, xz = TRUE)
+uav_trans2d <- clip_transect(pc_uav_subset, s, e, width = width, xz = TRUE)
+
+# plot
+p <- plot(tls_trans2d, color="Z", pal="blue")
+plot(uav_trans2d, color="Z", pal="red", add=p, axis=TRUE)
+
+```
+
+```{r}
+
+# -----
+## now do your ndsm comparison:
+# - calculate the difference
+# - quantify the difference
+diffndsm <- abs(ndsm_uav - ndsm_tls)
+
+# Define the breaks manually
+breaks <- seq(-15, 25, by = 1)
+
+# Create a color palette
+col <- colorRampPalette(c("blue", "green", "yellow", "red"))(length(breaks) - 1)
+
+
+plot(diffndsm, main="nDSM difference", col=col)
+# Add tree tops as red dots
+plot(tree_tops, add = TRUE, col = "red", pch = 20)
+
+zvalues <- as.vector(diffndsm$Z)
+hist(zvalues, 
+     breaks = 50,
+     main = "Histogram of the difference between both nDSM rasters",
+     xlab = "Height (m)",
+     ylab = "Frequency",
+     col = "skyblue",
+     border = "white")
+
+mean_z <- mean(zvalues, na.rm=T)
+sd_z <- sd(zvalues, na.rm=T)
+
+plot(density(zvalues, na.rm = TRUE),
+     main = "Density Plot of Z Values",
+     xlab = "Z Value",
+     col = "red")
+
+stats <- data.frame(
+  Mean = mean(zvalues, na.rm = TRUE),
+  Median = median(zvalues, na.rm = TRUE),
+  SD = sd(zvalues, na.rm = TRUE),
+  Min = min(zvalues, na.rm = TRUE),
+  Max = max(zvalues, na.rm = TRUE),
+  Q1 = quantile(zvalues, 0.25, na.rm = TRUE),
+  Q3 = quantile(zvalues, 0.75, na.rm = TRUE)
+)
+
+print(stats)
+```
+
+3.  Evaluate and describe the two ways of receiving an nDSM by highlighting their pros/cons.
+
+    e.g. What is the key difference? Why do the two not show the same heights?:
