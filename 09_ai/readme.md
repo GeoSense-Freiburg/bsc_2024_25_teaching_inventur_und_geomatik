@@ -1,4 +1,5 @@
 **exercise: Inventur KI auf LIDAR Daten anwenden / auswerten-Part-1**
+    
     - UAV daten Baumpositionen, Baumhöhen (part 1)
     - Vergleich mit Vollinventur von ECOSENSE (part 2 nächste Woche)
         - DBH, Bestandesdichte
