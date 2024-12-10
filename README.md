@@ -29,6 +29,20 @@ Start 16.10.24
 
 # News
 
+## 11.12.24
+
+- **lecture: Einführung KI in Inventur**
+    - Einzelbaumerkennung
+    - Arterkennung
+    - Baumhöhe
+    - Stämme, vs. Ast. vs Blätter, etc…)
+
+- **exercise: Inventur KI auf LIDAR Daten anwenden / auswerten-Part-1**
+    - UAV daten Baumpositionen, Baumhöhen (part 1)
+    - Vergleich mit Vollinventur von ECOSENSE (part 2 nächste Woche)
+        - DBH, Bestandesdichte
+        - Vergleich Plot-basierte Inventur vs. KI/Drohnen-basierte Inventur
+
 ## 04.12.2024
 
 (08_droneslidar)
