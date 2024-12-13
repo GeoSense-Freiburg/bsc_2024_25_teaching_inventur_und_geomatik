@@ -1,0 +1,360 @@
+---
+title: "uav_lidar_inventory"
+author: "Teja Kattenborn (teja.kattenborn@geosense.uni-freiburg.de)"
+web: "https://www.geosense.uni-freiburg.de"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+format:
+  html:
+    code-block-bg: true
+    self-contained: true
+  pdf:
+    df-print: kable
+execute:
+  echo: true
+  warning: false
+editor: visual
+---
+
+# Drone-based LiDAR Forest Inventory
+
+![](images/image2.png)
+
+## Load Packages, paths, etc...
+
+```{r}
+#install.packages(c("lidR","RCSF", "gstat", "viridis))
+library(lidR)
+library(RCSF)
+library(gstat)
+library(viridis)
+library(dplyr)
+```
+
+Set the path to your data
+
+```{r}
+wdir <- "09-pc/"
+```
+
+## Read and inspect the las-file
+
+```{r}
+#| echo: false
+#| # PLEASE CHANGE THE NAME ACCORDING TO YOUR DATA SET
+las <- readLAS(paste0(wdir,"2024_06_07_L2_MID015_clippedtoinv2_xyzia_out-ds-25cm.laz"))
+```
+
+```{r}
+las
+```
+
+```{r}
+summary(las)
+```
+
+## Visualizing LAS files
+
+### Basic plotting
+
+Then use the plot function. The plot function is lidR::plot but we can just use plot since R knows that this is an lidR object. If you run this command an external window will open where you can pan and rotate the point cloud.
+
+```{r eval = FALSE}
+plot(las, axis = TRUE)
+```
+
+### Visualize segmented point cloud
+
+First we check how many trees were found and initialize colors for all trees
+
+```{r}
+# first we initialize colors for all trees
+# How much trees do we have?
+n_trees <- length(unique(las@data$PredInstance))
+#col <- random.colors(2070)
+col <- sample(viridis(2070, option = "mako"))
+```
+
+```{r eval = FALSE}
+plot(las, color = "PredInstance", pal = col, axis = TRUE, nbreaks = length(col))
+```
+
+## Find coordinates for each tree
+
+Tree positions are usually defined by the stem coordinate. However, our point cloud does not yet have a unique coordinate for each tree but many coordinates (a point cloud for each tree). You can see this once you plot some single trees (also a good chance to get an idea of the segmentation quality):
+
+```{r eval = FALSE}
+randomtree <- 1107 # select a tree ID of your choice (e.g. bad examples: 669, 1154, good ex: 738, 661)
+
+las_instance <- filter_poi(las, PredInstance == randomtree)
+plot(las_instance, color = "Z", legend=T, axis=T)
+```
+
+One solution to extract stem coordinates is to only extract points from tree stems and use their centroid.
+
+![](images/fig_centroid.png)
+
+So we could just slice ourn point cloud to extract all stems (e.g. from 0 to 4 m height). However, our point cloud has Z values (heights) over sea level and we also have some topographic variation in our area. Thus, we cannot just use the point cloud heights as they are, since these are not yet tree heights.
+
+```{r}
+hist(las@data$Z, xlab = "height above sea level [m]")
+```
+
+Anyway, normalizing point clouds (removing terrain heights) is a standard operation. We first define the terrain and then subtract the terrain height from the points, before we can use them to extract height information.
+
+### Height normalization via Digital terrain model (DTM)
+
+lidR has a built-in classifier to detect ground points:
+
+```{r}
+mycsf <- csf(TRUE, 1, 1, time_step = 1)
+las <- classify_ground(las, mycsf)
+```
+
+Only keep (filter) and plot the ground points:
+
+```{r eval = FALSE}
+ground_points <- filter_poi(las, Classification == 2)
+plot(ground_points, axis = TRUE)
+```
+
+That looks good! Now we can built a 2D raster from this (discrete matrix):
+
+```{r}
+dtm <- rasterize_terrain(las, 1, knnidw(k = 6L, p = 2))
+dtm
+```
+
+```{r}
+plot(dtm)
+```
+
+Now we can for each point in the point cloud calculate the height difference to the DTM cell, which will result in a new point cloud (the normalized point cloud)
+
+```{r}
+nlas <- normalize_height(las, dtm)
+```
+
+Let´s see if it worked. Is the topography removed and do the axis seem to correspond to actual tree heights?
+
+```{r eval = FALSE}
+plot(nlas, axis = T)
+```
+
+### Height normalization via TINs (triangulation of points)
+
+There is also a simpler approach that uses a triangulation of the lowest points in an area. Different methods can be used for triangulation.
+
+```{r}
+nlas <- normalize_height(las, knnidw()) # fast
+#nlas <- normalize_height(las, knnidw(k = 8, p = 2))
+#nlas <- normalize_height(las, kriging()) # slow
+```
+
+Let´s see if also this approach seems to work:
+
+```{r eval = FALSE}
+plot(nlas, axis = T)
+```
+
+### Extract tree stems and extract their individual coordinates
+
+Let´s slice the normalized point cloud between the ground and some meters height:
+
+```{r}
+nlas_trans <- filter_poi(nlas, Z >= 0.1 & Z <= 4)
+```
+
+Check the output (feel free to play with the numbers):
+
+```{r eval = FALSE}
+#col <- random.colors(2070)
+col <- sample(viridis(2070, option = "mako"))
+plot(nlas_trans, color = "PredInstance", pal = col, legend = F, axis = T, nbreaks = length(col))
+```
+
+Now that we have the stems, let´s determine the centroid for each tree
+
+```{r}
+
+# Calculate centroids for each instance
+centroids <- nlas_trans@data %>%
+  group_by(PredInstance) %>%
+  summarize(
+    X = mean(X),
+    Y = mean(Y),
+    Z = 0,
+    .groups = "drop"  # Avoid unnecessary grouping in the result
+  )
+
+# Print centroids
+print(centroids)
+```
+
+Let´s inspect the outcome:
+
+```{r}
+plot(centroids$X, centroids$Y, pch = 4, asp = 1,
+     xlab = "UTM coordinate [m]", ylab = "UTM coordinate [m]")
+```
+
+```{r}
+centro_las <- LAS(centroids)
+```
+
+```{r eval = FALSE}
+col <- sample(viridis(2070, option = "mako"))
+p <- plot(nlas_trans, color = "PredInstance", pal = col, legend = F, axis = T, nbreaks = length(col))
+```
+
+```{r eval = FALSE}
+plot(centro_las, add = p, pal = "white", size = 10)
+```
+
+## Extract individual tree heights
+
+In the previous step, we got the positions. Now let's also get the heights
+
+```{r}
+# Find the highest point for each instance
+tree_heights <- nlas@data %>%
+  group_by(PredInstance) %>%
+  slice_max(Z, n = 1) %>%  # Get the row with the maximum Z value for each instance
+  ungroup()
+
+tree_heights <- tree_heights[, c("X", "Y", "Z", "PredInstance")]
+
+# View the results
+print(tree_heights)
+```
+
+```{r}
+hist(tree_heights$Z)
+```
+
+Why is there a tree height of more than 35 meters?
+
+### Visualize the tree tops
+
+```{r}
+tree_heights_las <- LAS(tree_heights)
+```
+
+Plots for the entire site:
+
+```{r eval = FALSE}
+col <- sample(viridis(2070, option = "mako"))
+p <- plot(nlas, color = "PredInstance", pal = col, legend = F, axis = T, nbreaks = length(col))
+```
+
+```{r eval = FALSE}
+plot(tree_heights_las, add = p, pal = "yellow", size = 10)
+```
+
+```{r eval = FALSE}
+plot(centro_las, add = p, pal = "white", size = 10)
+```
+
+```{r}
+# Define the bounds of the transect
+xmin <- 416648.3
+xmax <- 416838.9  # Narrow strip along X
+ymin <- 5346560+10
+ymax <- 5346560+20
+
+# Filter points within the transect bounds
+transect_nlas <- filter_poi(nlas, X >= xmin & X <= xmax & Y >= ymin & Y <= ymax)
+```
+
+```{r eval = FALSE}
+col <- sample(viridis(2070, option = "mako"))
+p <- plot(transect_nlas, color = "PredInstance", pal = col, legend = F, axis = T, nbreaks = length(col))
+```
+
+```{r eval = FALSE}
+tree_heights_las_trans <- filter_poi(tree_heights_las, X >= xmin & X <= xmax & Y >= ymin & Y <= ymax)
+plot(tree_heights_las_trans, add = p, pal = "yellow", size = 10)
+```
+
+```{r eval = FALSE}
+centro_las_trans <- filter_poi(centro_las, X >= xmin & X <= xmax & Y >= ymin & Y <= ymax)
+plot(centro_las_trans, add = p, pal = "white", size = 10)
+```
+
+### Merge the height data with the tree locations
+
+```{r}
+tree_heights2 <- tree_heights
+colnames(tree_heights2) = c("X_top", "Y_top", "Z_top", "PredInstance")
+
+full_table <- inner_join(centroids, tree_heights2, by = "PredInstance")
+
+```
+
+# Compare the drone-based inventory with the field inventory
+
+# ...(Part 2 next week)...
+
+## Exercises (may take 1-2 h)
+
+### 1) Use a different slicing to extract the stems.
+
+Do the results change? is the approach robust?
+
+### 2) Build a function that extracts the DBH for each tree
+
+You can build on the above function to extract the centroid. But then, for each tree calculate the distances from the centroid. Maybe something like the 95% quantile of the distances may give you a radius and using the radius you can derive the DBH. Create a histogram of the extracted DBH values.
+
+```{r}
+# Compute the DBH for each tree
+  dbh <- nlas_trans@data %>%
+    group_by(PredInstance) %>%
+    summarize(
+      centroid_x = mean(X),
+      centroid_y = mean(Y),
+      distances = list(sqrt((X - mean(X))^2 + (Y - mean(Y))^2))
+    ) %>%
+    rowwise() %>%
+    mutate(DBH = (2 * quantile(unlist(distances), 0.95))*100) %>%
+    ungroup() %>%
+    select(PredInstance, DBH)
+```
+
+```{r}
+dbh
+hist(dbh$DBH, 
+     breaks = 50,
+     main = "Histogram of DBH (cm)",
+     xlab = "DBH (cm)",
+     ylab = "Frequency",
+     col = "skyblue",
+     border = "white")
+
+# Filter out DBH values above 300
+filtered_dbh <- dbh %>% filter(DBH <= 300)
+
+# Create the histogram
+hist(filtered_dbh$DBH, 
+     breaks = 50,
+     main = "Histogram of DBH (cm)",
+     xlab = "DBH (cm)",
+     ylab = "Frequency",
+     col = "skyblue",
+     border = "white")
+
+full_table_dbh <- inner_join(full_table, dbh, by = "PredInstance")
+full_table_dbh
+```
+
+### 3) Calculate DBH via allometries (part 2)
+
+Extracting DBH values from the point cloud might be a bit unstable. Derive DBH values from allometries for each species (do the inverse from the exercise with Thomas Seifert). How good is the correspondence (plot the correlation in a scatter plot, calculate a correlation and a mean absolute error).
+
+### 4) Are trees growing straight?
+
+For each tree calculate the difference of the stem coordinate and the tree top. Are trees growing straight? What are the implications for remote sensing? Should we define a tree position based on the stem or the grown top? Why?
+
+### 5 Compare stand-level metrics from a drone-based inventory and ground-based inventory (part 2)
+
+a\) Calculate the basal area, the stem density and wood volume from the drone-based inventory. Calculate the difference with the data from the full inventory. How far are you off?
+
+b\) Is the drone-based inventory more accurate than a ground-based inventory? Compare the drone-based invenory with the ground-based inventory simulations from the 11th-15th November (e.g. using 5 plots). Which method would you prefer?
