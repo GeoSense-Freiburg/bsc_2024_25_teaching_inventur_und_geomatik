@@ -15,7 +15,19 @@ execute:
 editor: visual
 ---
 
-# Drone-based LiDAR Forest Inventory - Part 3
+# LiDAR Forest Inventory - Part 3
+
+## Main contents of this exercise
+
+-   Compare Terrestrial Laser Scanning (TLS)-based and Unmanned Aerial Vehicle (UAV)-based point clouds for forest inventries.
+
+-   Compare UAV and TLS-based instance segmentations to a full forest inventory of the [ECOSENSE](https://ecosense.uni-freiburg.de/) site (Ettenheim, Germany).
+
+-   Instance segmentations delineate individual trees in point clouds. Here, we test [SegmentAnyTree](https://github.com/SmartForest-no/SegmentAnyTree). A small visual recap on SegmentAnyTree, a tool to segment individual trees in LiDAR point clouds across different LiDAR data types:
+
+    ![](images/Screenshot 2024-12-17 205528.png)
+
+-   Moreover, we will look into AI-based tree species recognition that was applied on the invidiual tree segmentations.
 
 Remember that we looked into how the point clouds of ULS and TLS differ from one another, here is a quick reminder which shows the two side by side:
 
@@ -31,9 +43,37 @@ library(dplyr)
 library(terra)
 ```
 
-## Compare the drone-based inventory with the field inventory
+Reminder: this script assumes that your Quarto document is in the same directory as your data. If this is not the case, consider to set your working directory with `setwd("path/to/your/data/folder/")`.
 
-### load the data
+## Load & inspect the data
+
+### Inventory data
+
+Load the tree inventory data from ECOSENSE (full inventory).\
+\*.gpkg stands for geopackage format. We can load that in R using terra as SpatVector object.
+
+```{r}
+tree_inv <- vect("tree_inventory_final2.gpkg")
+```
+
+```{r}
+head(tree_inv)
+```
+
+....puh, many attributes. For sure not all of them are useful for this analysis. We will mostly focus on the species, the DBH and of course the geolocation:
+
+```{r}
+plot(tree_inv, col = "red")
+```
+
+```{r}
+# please ignore
+#tree_inv_spec <- read.csv("lookup_odk2.csv", sep = ",", header = T)
+#tree_inv2 <- merge(tree_inv, tree_inv_spec, by.x = "species", by.y = "abbr")
+#writeVector(tree_inv2, "D:/output_file.gpkg", filetype = "GPKG")
+```
+
+### TLS & UAV-based inventory data
 
 UAV-based point clouds with AI-based tree segmentation
 
@@ -49,29 +89,7 @@ pc_tls <- readLAS("tls_pointcloud_red.las")
 pc_tls
 ```
 
-Load the tree inventory data from ECOSENSE (full inventory).\
-\*.gpkg stands for geopackage format. We can load that in R using terra as SpatVector object.
-
-```{r}
-tree_inv <- vect("tree_inventory_final2.gpkg")
-```
-
-```{r}
-head(tree_inv)
-```
-
-```{r}
-plot(tree_inv, col = "red")
-```
-
-```{r}
-# please ignore
-#tree_inv_spec <- read.csv("lookup_odk2.csv", sep = ",", header = T)
-#tree_inv2 <- merge(tree_inv, tree_inv_spec, by.x = "species", by.y = "abbr")
-#writeVector(tree_inv2, "D:/output_file.gpkg", filetype = "GPKG")
-```
-
-### Visually compare TLS & UAV-based inventory
+Let´s plot the data for a visual comparison:
 
 ```{r eval = FALSE}
 col <- sample(viridis(2070, option = "mako"))
@@ -83,12 +101,9 @@ col <- sample(viridis(2070, option = "mako"))
 p <- plot(pc_tls, color = "PredInstance", pal = col, legend = F, axis = T, nbreaks = length(col))
 ```
 
-### Inspect the inventory data
+## UAV-based segmentation vs full inventory
 
-```         
-```
-
-### Compare UAV-based segmentation result to full inventory
+Remember how we extracted the tree cordinates in the previous exercise? We will apply this again.
 
 Normalize point cloud on Z-axis
 
@@ -103,7 +118,7 @@ pc_uav_n <- normalize_height(pc_uav, knnidw())
 plot(pc_uav_n, axis = T)
 ```
 
-Cut a transect for stem extraction
+Cut a horizonal transect for stem extraction (we slice the point cloud close to the ground).
 
 ```{r}
 pc_uav_n_trans <- filter_poi(pc_uav_n, Z >= 0.1 & Z <= 4)
@@ -114,7 +129,7 @@ col <- sample(viridis(2070, option = "mako"))
 plot(pc_uav_n_trans, color = "PredInstance", pal = col, legend = F, axis = T, nbreaks = length(col))
 ```
 
-Derive the centroids for stems
+Derive the centroids for stems (as proxy for the tree position):
 
 ```{r}
 # Calculate centroids for each instance
@@ -132,7 +147,7 @@ centroids_uav <- pc_uav_n_trans@data %>%
 print(centroids_uav)
 ```
 
-Convert the centroids to a proper geospatial vector format (SpatVector)
+Convert the centroids to a geospatial vector format (SpatVector), so we can compare it with the inventory data (which is also in vector format):
 
 ```{r}
 centroids_uav_sv <- vect(centroids_uav, geom = c("X", "Y"), crs = "EPSG:32632")
@@ -189,7 +204,7 @@ hist(as.numeric(unmatched_uav$tls_DBH),
 
 Not all trees are matched, but at least there seems to be no strong bias for small/large trees.
 
-## TLS analysis
+## TLS-based segmentation vs full inventory
 
 Same procedure as for the UAV data. First, we normalize the point cloud...
 
@@ -265,7 +280,9 @@ nrow(matches_tls)/nrow(tree_inv)*100
 
 ## TLS & UAV tree height comparison
 
-Extract maximum Z value per instance:
+Above we have looked at the coordinates. But we know that we can extract much more, such as the height.
+
+Extract maximum Z value per instance for both TLS and UAV data:
 
 ```{r}
 # Find the highest point for each instance
@@ -293,6 +310,8 @@ tls_tree_heights <- tls_tree_heights[, c("X", "Y", "Z", "PredInstance")]
 print(tls_tree_heights)
 ```
 
+Let´s compare this visually using histograms:
+
 ```{r}
 par(mfrow = c(1,2))
 hist(tls_tree_heights$Z, ylim = c(0,900), main = "TLS-based height distribution")
@@ -317,13 +336,16 @@ When looking at the transects ... can you explain the results?
 
 ## AI-based Species identification
 
-We will test `DetailView` from Julian Frey: <https://github.com/JulFrey/DetailView>
+-   We will test `DetailView` from Julian Frey et al.: <https://github.com/JulFrey/DetailView>
 
-You can read on the details here: [Puliti, S., Lines, E. R., Müllerová, J., Frey, J., Schindler, Z., Straker, A., \... & Astrup, R. (2024). Benchmarking tree species classification from proximally-sensed laser scanning data: introducing the FOR-species20K dataset. *arXiv preprint arXiv:2408.06507*.](https://arxiv.org/abs/2408.06507)
+-   You can read on the details here: [Puliti, S., Lines, E. R., Müllerová, J., Frey, J., Schindler, Z., Straker, A., \... & Astrup, R. (2024). Benchmarking tree species classification from proximally-sensed laser scanning data: introducing the FOR-species20K dataset. *arXiv preprint arXiv:2408.06507*.](https://arxiv.org/abs/2408.06507)
 
-Currently, DetailView is one of the most accurate tree species classifiaction modelds for LiDAR data:
+-   Detail view requires point clouds of invidiual trees. Thus, we are perfectly prepared as with [SegmentAnyTree](https://github.com/SmartForest-no/SegmentAnyTree), we already extracted single trees. Here you can see some of the training data of DetailView:\
+    ![](images/Screenshot 2024-12-17 1632072.png)
 
-![](images/Screenshot 2024-12-17 163207.png)
+-   Currently, DetailView is one of the most accurate tree species classifiaction modelds for LiDAR data:
+
+![](images/Screenshot%202024-12-17%20163207.png)
 
 Let´s first have look at the reality (forest inventory data of ECOSENSE):
 
@@ -455,10 +477,16 @@ plot.new()  # Create an empty plot for the legend
 legend("center", legend = names(species_colors), fill = species_colors, title = "Species")
 ```
 
-## Open Questions
+## Open Questions & Outlook
 
-How could we potentially improve the tree species classification?
+-   How could we potentially improve the tree species classification?
 
-Can we trust UAV-based or TLS-based inventories?
+-   Can we trust UAV-based or TLS-based inventories?
 
-What are related advantages or disadvantages?
+-   Can we trust field-based inventories in terms of coverage, sampling and measurement uncertainty?
+
+-   What are related advantages or disadvantages?
+
+-   How can we move on with UAV- or TLS-based inventories to estimate basal area, biomass or timber volume?
+
+-   How will forest inventories look like in 2050?
