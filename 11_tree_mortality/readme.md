@@ -1,5 +1,11 @@
 # Lecture: Tree mortality mapping with remote sensing and deadtrees.earth
 
+## contents:
+* Relevanceoftreemortalitymapping
+* Towards of global tree mortality mapping
+* The platform deadtrees.earth
+* Recent findings
+
 # Exercise: deadtrees pt. 1: UAV-based detection of deadwood using AI-based pattern recognition
   
 ## Aim
