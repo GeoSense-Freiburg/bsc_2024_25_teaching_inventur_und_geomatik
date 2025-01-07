@@ -6,9 +6,11 @@
 * The platform deadtrees.earth
 * Recent findings
 
+
+
 # Exercise: deadtrees pt. 1: UAV-based detection of deadwood using AI-based pattern recognition
-  
-## Aim
+
+  ## Aim
 * Students will assess AI-based segmentation performance
 * Manual labels will be compared to segmentation models of deadtrees.earth
 * Students get an idea of how cumbersome labeling can be and how valuable data is
