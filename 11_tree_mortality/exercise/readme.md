@@ -17,7 +17,7 @@
 * Students will label orthoimages and document the progress.
 * Students will compare their labels to AI-based segmentation results
 * Visually in QGIS
-* In R (Quarto) using script **label_comaprison_v1.qmd**
+* In R (Quarto) using the script **label_comaprison_v1.qmd**
   * Plot the two shapefiles
   * Calculate the mutual area, Precision, Recall, F1 Score
 * Students can then refine their polygons in case the AI was better ;-)
