@@ -1,0 +1,115 @@
+---
+title: "label_comparison"
+author: "Teja Kattenborn (teja.kattenborn@geosense.uni-freiburg.de)"
+web: "https://www.geosense.uni-freiburg.de"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+format:
+  html:
+    code-block-bg: true
+    self-contained: true
+  pdf:
+    df-print: kable
+execute:
+  echo: true
+  warning: false
+editor: visual
+---
+
+# Comparing manual and AI-based labels
+
+## Main contents of this exercise
+
+-   Load two shapefiles, that is visual created labels and AI-based labels
+
+-   Reproject the shapefiles to the same coordinate system.
+
+-   Calculate and plot differences
+
+```{r}
+#install.packages(c("terra"))
+library(terra)
+```
+
+Reminder: this script assumes that your Quarto document is in the same directory as your data. If this is not the case, consider to set your working directory with `setwd("path/to/your/data/folder/")`.
+
+## Load & inspect the data
+
+### Inventory data
+
+Load the tree inventory data from ECOSENSE (full inventory).\
+\*.gpkg stands for geopackage format. We can load that in R using terra as SpatVector object.
+
+```{r}
+ai <- vect("1b36d887-96eb-4c9b-afe9-44bb028bf152_area_4_clipped_RGB.gpkg")
+```
+
+```{r}
+vis <- vect("1b36d887-96eb-4c9b-afe9-44bb028bf152_area_4_clipped_RGB_polygons.gpkg", layer = "standing_deadwood")
+```
+
+```{r}
+par(mfrow = c(1,2)) # to plot two figures side by side
+plot(ai, main = "manual label")
+plot(vis, main = "visual label")
+```
+
+We have a different coordinate system. Lets reproject one of the two:
+
+```{r}
+print(crs(ai, describe = T)$code)
+print(crs(vis, describe = T)$code)
+```
+
+```{r}
+ai = project(ai, crs(vis))
+```
+
+```{r}
+# Crop the ai vector to the extent of the reference vector
+ai <- crop(ai, vis)
+```
+
+```{r}
+plot(clipped_ai, col = rgb(0, 0.5, 1, 0.3))
+plot(vis, add = T, col = rgb(0.8, 0.5, 0, 0.3))
+```
+
+# Precision, Recal, F1-Score
+
+![](pic_prec_vs_recall.png){width="583"}
+
+In easy words...
+
+-   ... low **precision** means that the model may just (rather randomly) predict the class (low values hint to overestimation)
+
+-   ... low **recall** means that the models may hardly detect real presences (low values hint to underestimation)
+
+The **F1-Score** is the harmonic mean of precision and recall and is a combined information for the tendency of under and overestimation.
+
+### Calculate Precision, Recall and F1-Score
+
+```{r}
+# Step 1: Calculate the area of intersection (True Positive)
+intersection <- intersect(ai, vis)
+tp_area <- expanse(intersection, unit = "m") 
+```
+
+```{r}
+# Step 2: Calculate the total area of predicted and reference polygons
+predicted_area <- expanse(ai, unit = "m")
+reference_area <- expanse(vis, unit = "m")
+```
+
+```{r}
+# Step 3: Compute Precision, Recall, and F1-Score
+precision <- sum(tp_area) / sum(predicted_area)
+recall <- sum(tp_area) / sum(reference_area)
+f1_score <- 2 * (precision * recall) / (precision + recall)
+```
+
+```{r}
+# Print results
+cat("Precision:", precision, "(low values hint to underestimation)", "\n")
+cat("Recall:", recall, "(low values hint to overstimation)", "\n")
+cat("F1-Score:", f1_score, "(The harmonic mean of precision and recall)","\n")
+```
