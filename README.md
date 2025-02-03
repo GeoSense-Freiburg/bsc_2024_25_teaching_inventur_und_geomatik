@@ -24,10 +24,17 @@ Start 16.10.24
 12. deadtrees.earth (Teil 2)
 13. Einführung großflächige Waldinformationsprodukte
 14. Zusammenfassung und Klausurbesprechung
+15. GIS in Forstlichen Geschäftsprozessen
 
 --------------------
 
 # News
+
+
+## 05.02.25
+
+- **last lecture: GIS in forstlichen Geschäftsprozessen (Thomas Purfürst)**
+
 
 ## 11.12.24
 
