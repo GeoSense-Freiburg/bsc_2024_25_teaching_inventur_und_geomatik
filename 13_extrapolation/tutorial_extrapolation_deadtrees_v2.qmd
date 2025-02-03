@@ -1,0 +1,589 @@
+---
+title: "tutorial_Deadtrees"
+author: "Teja Kattenborn (teja.kattenborn@geosense.uni-freiburg.de); Joachim Maack"
+web: "https://www.geosense.uni-freiburg.de"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+format:
+  html:
+    code-block-bg: true
+    self-contained: true
+  pdf:
+    df-print: kable
+execute:
+  echo: true
+  warning: false
+editor: visual
+---
+
+# Simulating tree mortality patterns against climate change scenarios
+
+Here, we will simulate how recent mortality dynamics may have looked like under future climate scenarios.
+
+-   We will perform these simulations using machine learning models (random forest). These models learned the relationship of present tree mortality patterns with present soil, topographic and climate data.
+
+-   By running the model again with future climate data, we attempt to simulate how tree mortality of the last years might have looked like under future conditions. Thus, this might give us an idea if we can expect more sever mortality dynamics under future conditoons.
+
+-   Thereby, we will also consider different[Shared Socioeconimic Pathways (SSPs)](https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways), which are different scenarios of human behaviour (more or less CO2 emissions). More specifically, we will use SSP2 and SSP5.
+
+    -   SSP2 (Middle of the Road):
+
+        -   CO₂ Emissions (2100): \~25--40 GtCO₂/year.
+
+        -   Cumulative Emissions (2020--2100): \~1,200--1,600 GtCO₂.
+
+        -   Peak Warming: \~2.5--3°C by 2100 (depending on mitigation efforts).
+
+    -   SSP5 (Fossil-Fueled Development):
+
+        -   CO₂ Emissions (2100): \~80--100 GtCO₂/year.
+
+        -   Cumulative Emissions (2020--2100): \~2,500--3,500 GtCO₂.
+
+        -   Peak Warming: \~4--5°C by 2100 (high-emission scenario).
+
+These future climate scenarios are obtained from [WorldClim](https://www.worldclim.org/data/cmip6/cmip6climate.html), future climate projections are based on General Circulation Models (GCMs), which simulate climate processes using historical and current climate
+
+## Train Model on current conditions
+
+The first step is to identify, collect and prepare some influential variables (like in the last week)
+
+Set working directory
+
+```{r}
+#| echo: false
+#| message: true
+#| warning: false
+library(terra)
+library(randomForest)
+library(ggplot2)
+library(ggcorrplot)
+library(dplyr)
+library(rnaturalearth)
+library(animation)
+```
+
+Loading the raster files and start exploring the data with some plotting
+
+```{r}
+#| echo: false
+#| message: true
+#| warning: false
+# Specify the folder containing the raster files
+folder = "Response"
+
+# List all raster files in the folder (e.g., .tif files)
+raster_files = list.files(folder, pattern = "\\.tif$", full.names = TRUE)
+
+# Load and stack the rasters
+raster_stack = rast(raster_files)
+
+plot(raster_stack$max, main = "Share of dead trees")
+```
+
+## Modelling tree mortality with climatic and topographic data
+
+Lets check if we can model the relationship between environmental data and tree-mortality. We have selected environmental data, consisting of
+
+-   [SRTM](https://www.earthdata.nasa.gov/data/instruments/srtm) (NASA space shuttle topography mission)
+
+-   [Worldclim](https://www.worldclim.org/data/index.html)
+
+-   [SoilGrids](https://soilgrids.org/)
+
+What will we do?
+
+1.  Prepare the data for model training (merge data into a common raster stack).
+
+2.  Extract sample data from both the tree mortality map (response variable) and the climate data (predictors).
+
+3.  Train a Random Forest model and evaluate the importance of the predictors.
+
+4.  Predicting the tree mortality for future climate scenarios (2040, 2060, 2080, 2100)
+
+### 1. Prepare Your Data
+
+```{r}
+#| warning: false
+#| echo: false
+# Specify the folder containing the raster files of the predictors
+folder_preds = "Predictors"
+
+# List all raster files of the predictors in the folder (e.g., .tif files)
+raster_files_preds = list.files(folder_preds, pattern = "\\.tif$", full.names = TRUE)
+
+# Load and stack the rasters
+preds_raster_stack = rast(raster_files_preds)
+```
+
+### 2. Sample predictor and response values
+
+```{r}
+# combine predictors (environmental variables) and response (tree mortality)
+stack_updated = c(preds_raster_stack, raster_stack$max)
+
+# Extract values for the response (tree mortality)
+set.seed(42)
+sampled_values = spatSample(stack_updated, size = 2000, method = "random", xy = TRUE, na.rm=TRUE)
+
+# Check the sampled values
+head(sampled_values)
+```
+
+```{r}
+plot(raster_stack$max)
+points(sampled_values$x, sampled_values$y, col = "red", pch = 18, cex = 0.5)
+```
+
+### 3. Train a Random Forest Model
+
+What is a [RandomForest](https://en.wikipedia.org/wiki/Random_forest#:~:text=Random%20forests%20are%20a%20way,performance%20in%20the%20final%20model.)? RandomForest is a machine learning model. Its underlying principle is simple; it builds on decision trees. Each branch of a tree is a decision based on a predictor (e.g. a temperature value from WorldClim or Slope from SRTM). After one branch follows another branch with a subsequent decision. The special thing about randomForest is that it creates hundreds of such trees, selects the best ones and averages there result. This "democratic" majority vote makes this method so robust and its simplicity makes it so efficient. This is why for years, randomForest is one of the most effective machine learning methods for tabular data.
+
+![](images/Sample-random-forest-regression-tree.png)
+
+Lets train a randomForest. We will train the model a few times and check if the results (explained variance, importance of the predictors) change. Why may this happen? What influence has the sample size? You could also check the correlation between the predictors and remove one if the it exceeds 0.7.
+
+```{r}
+# Define the response variable (tree mortality) and predictors (climate data)
+response = sampled_values$max
+
+# remove uncessesary variables (e.g. the x and y location)
+sampled_values$species_class_sum = as.factor(sampled_values$species_class_sum)
+head(sampled_values[, -c(1,2,11)])
+predictors = sampled_values[, -c(1,2,11)]  # All columns except the first one (response variable)
+
+# Train the Random Forest model
+# What does the argument ntree? Read the help.
+
+rf_model = randomForest(x = predictors, y = response, importance = TRUE, ntree = 500)
+
+# Check the model results
+print(rf_model)
+
+```
+
+### 4. Permutation Test
+
+In a Random Forest importance plot, %IncMSE (Percentage Increase in Mean Squared Error) is a measure of variable importance. It quantifies how much worse the model's predictions become (in terms of Mean Squared Error, MSE) when the values of a specific predictor variable are randomly permuted.
+
+During the calculation of variable importance, the values of a predictor variable are permuted (shuffled randomly) across all observations, breaking the relationship between the predictor and the response.
+
+IncNodePurity (Increase in Node Purity) is another measure of variable importance used in Random Forest models. It is based on the improvement in the model's ability to correctly classify or predict data (purity) that results from splitting a decision tree using a specific variable.
+
+```{r}
+varImpPlot(rf_model , sort = TRUE  , main = "Predictor Importance" )
+```
+
+You could also check the correlation between the predictors and remove one if the it exceeds +-0.7.
+
+Further details on the WorldClim data (bio\_.\*) is available [here](https://www.worldclim.org/data/bioclim.html).
+
+```{r}
+#library(ggcorrplot)
+
+# Visualize the correlation matrix
+
+head(sampled_values[, -c(1,2,10,11)])
+predictors = sampled_values[, -c(1,2,11)]  # All columns except the first one (response variable)
+predictors_cor = sampled_values[, -c(1,2,10,11)]  # All columns except the first one (response variable)
+
+cor_matrix = cor(predictors_cor, use = "complete.obs")
+cor_matrix
+
+ggcorrplot(cor_matrix, lab = TRUE)
+
+
+```
+
+### 5. Evaluate the dependencies of individual predictors to response
+
+Next, we can calculate the effect of each predictor on the mortality. In easy words, the effect of a single variable is calculated based on its effect on the prediction.
+
+#### Slope
+
+The response is given in the original values (1-10000). Divide by 100 for %-values
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "slope", "1",xlab="Slope in Degree", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Soil: Sand 100-200 cm
+
+The response is given in the original values (1-10000). Divide by 100 for %-values
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "sand_100-200cm_mean", "1",xlab="Sand 100-200 cm", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Temperature Annual Range (wc2.1_30s_bio_7)
+
+The response is given in the original values (1-10000). Divide by 100 for %-values
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "wc2.1_30s_bio_7", "1",xlab="Temperature Annual Range", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Precipitation Seasonality (wc2.1_30s_bio_15)
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "wc2.1_30s_bio_15" , "1",xlab="Precipitation Seasonality (CoV)", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Annual Mean Temperature (wc2.1_30s_bio_1)
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "wc2.1_30s_bio_1", "1",xlab="Annual Mean Temperature", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Annual Precipitation (wc2.1_30s_bio_12)
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "wc2.1_30s_bio_12" , "1",xlab="Annual Precipitation", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Precipitation of Driest Quarter (wc2.1_30s_bio_17)
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "wc2.1_30s_bio_17" , "1",xlab="Precipitation of Driest Quarter", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+### 6. Predict future states (optional)
+
+The following steps will take some time for processing. However, we have pre-processed the model results. Thus, you can skip 6. and move on to 7.
+
+Our model is now trained with actual data. In the following we will load possible future states of our predictor variables and present them to your model. Only the climate variables will change for this model, the soil and topographic variables will stay the same.
+
+#### (optional) Load new data for extrapolation
+
+```{r}
+#| eval: false
+#| echo: true
+#| message: true
+#| warning: false
+# Specify the folder containing the raster files of the predictors
+folder_preds = "extrapol_2040_ssp2"
+
+# List all raster files of the predictors in the folder (e.g., .tif files)
+raster_files_ex = list.files(folder_preds, pattern = "\\.tif$", full.names = TRUE)
+
+# Load and stack the rasters
+raster_stack_ex = rast(raster_files_ex)
+
+```
+
+#### (optional) Predicting future tree mortality
+
+```{r}
+#| eval: false
+#| echo: true
+#| message: true
+#| warning: false
+
+species_mask = rast(paste0(folder_preds,"/tree_species_class.tif"))
+
+# New dataset for prediction
+new_data = raster_stack_ex
+
+#new_data = classify(new_data, rcl = cbind(NA, 0))
+# Ensure the new data has the same structure as the training data
+# Check the column names and factor levels if applicable
+names(new_data) = names(predictors)
+
+names(predictors)
+
+new_data = classify(new_data, rcl = cbind(NA, 2)) #RandomForest cant handle NA values
+
+new_data$species_class_sum = as.factor(new_data$species_class_sum)
+predictions = terra::predict(model=rf_model, object=new_data, parallel = TRUE)
+
+predictions = mask(predictions, species_mask)
+
+
+writeRaster(predictions, "predicted_dead_trees_2040_ssp2.tif", overwrite = TRUE)
+
+```
+
+### 7. Analyzing the results
+
+#### Plotting the tree mortality patterns for the different decades
+
+Now we will analyze the results of the predictions. The predictions are based on the HadGEM3-GC31 model using two different [SSP](https://de.wikipedia.org/wiki/Shared_Socioeconomic_Pathway) (Shared Socioeconomic Pathway). HadGEM3 simulates how the Earth's climate behaves under different scenarios. It helps predict how things like temperature, rainfall, and sea levels might change in the future, based on various factors like greenhouse gas emissions. We used HadGEM3 predictions on SSP2 and SSP5.
+
+-   SSP2 is known as the "middle of the road" scenario. It represents a future where global development follows a moderate path with no major disruptions or significant shifts in either direction.
+
+-   SSP5 represents a scenario where the world continues a high-emission, fossil-fuel-driven economic development, with significant technological advancements but also with rising challenges in terms of environmental degradation.
+
+We pre-processed raster files using both scenarios for the years 2040, 2060, 2080 and 2100.
+
+```{r}
+# Specify the folder containing the raster files of the predictors
+folder_preds = "Predictions_Deadtrees"
+
+# List all raster files of the predictors in the folder (e.g., .tif files)
+raster_files_preds = list.files(folder_preds, pattern = "\\.tif$", full.names = TRUE)
+
+# Load and stack the rasters
+raster_stack_preds = rast(raster_files_preds)
+
+# Define a custom color ramp
+color_ramp = colorRampPalette(c("white", "orange", "red", "darkred"))
+
+# Create breaks to emphasize values above 5000
+breaks = c(0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000)
+
+
+# Userdefined headings
+titles_ssp2 = c("2040 ssp2", "2060 ssp2", "2080 ssp2", "2100 ssp2")
+titles_ssp5 = c("2040 ssp5", "2060 ssp5", "2080 ssp5", "2100 ssp5")
+
+plot(raster_stack_preds[[c(1,3,5,7)]], main = titles_ssp2, col = color_ramp(length(breaks)-1), breaks = breaks)
+plot(raster_stack_preds[[c(2,4,6,8)]], main = titles_ssp5, col = color_ramp(length(breaks)-1), breaks = breaks)
+```
+
+The differences are not so clear. Let´s try with a threshold and only show tree mortality greater than 30% cover per pixel:
+
+```{r}
+# Define a custom color ramp here for a certain threshold
+color_ramp = colorRampPalette(c("white", "darkred"))
+
+# Create breaks to highlight a certain threshold
+breaks = c(0, 3000, 10000)
+
+
+# Userdefined headings
+titles_ssp2 = c("2040 ssp2", "2060 ssp2", "2080 ssp2", "2100 ssp2")
+titles_ssp5 = c("2040 ssp5", "2060 ssp5", "2080 ssp5", "2100 ssp5")
+
+
+plot(raster_stack_preds[[c(1,3,5,7)]], main = titles_ssp2, col = color_ramp(length(breaks)-1), breaks = breaks)
+plot(raster_stack_preds[[c(2,4,6,8)]], main = titles_ssp5, col = color_ramp(length(breaks)-1), breaks = breaks)
+```
+
+#### Difference maps ssp5
+
+Now we want to visualize the difference between the different scenarios (SSP2 vs SSP5) for the year 2100. Would we observe more or less tree mortality with high CO2 output scenario?
+
+```{r}
+# Calculating differences
+diff_2100 <- raster_stack_preds[[8]] - raster_stack_preds[[7]]
+
+# Define a custom blue-to-white-to-red color ramp
+color_ramp <- colorRampPalette(c("blue", "white", "red"))
+
+# Automatically calculate symmetric breaks around 0
+max_abs_val <- max(abs(minmax(diff_2100)["max", ]), abs(minmax(diff_2100)["min", ]))
+breaks <- seq(-max_abs_val, max_abs_val, length.out = 21)  # 20 intervals with 0 in the center
+
+# Plot with the custom color ramp and symmetric breaks
+plot(diff_2100, 
+     main = "Difference 2100 SSP2 vs SSP5", 
+     col = color_ramp(length(breaks) - 1), 
+     breaks = breaks)
+```
+
+Red means higher and blue lower mortality under SSP5.
+
+#### Difference maps 
+
+Can you please repeat the analysis for 2040 and 2060?
+
+```{r}
+# ...
+
+
+```
+
+#### Summarizing dead trees over the different decades
+
+Lets see how tree mortality has performed over time.
+
+```{r}
+# Load required libraries
+library(terra)
+library(ggplot2)
+
+
+
+# Example raster files (replace these with your raster files)
+
+r1 = raster_stack_preds[[2]] - raster_stack_preds[[1]]
+r2 = raster_stack_preds[[4]] - raster_stack_preds[[3]]
+r3 = raster_stack_preds[[6]] - raster_stack_preds[[5]]
+r4 = raster_stack_preds[[8]] - raster_stack_preds[[7]]
+
+# Function to count positive and negative pixels in a raster
+count_pixels = function(raster, name) {
+  values = values(raster)
+  positive = sum(values > 0, na.rm = TRUE)
+  negative = sum(values < 0, na.rm = TRUE)
+  data.frame(
+    Raster = name,
+    Type = c("More", "Less"),
+    Count = c(positive, negative)
+  )
+}
+
+# Count pixels for each raster
+df1 = count_pixels(r1, "Diff. SSP5 vs SSP2 2040")
+df2 = count_pixels(r2, "Diff. SSP5 vs SSP2 2060")
+df3 = count_pixels(r3, "Diff. SSP5 vs SSP2 2080")
+df4 = count_pixels(r4, "Diff. SSP5 vs SSP2 2100")
+
+# Combine results into one data frame
+df = rbind(df1, df2, df3, df4)
+
+# Create a bar plot
+ggplot(df, aes(x = Raster, y = Count, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.8) +
+  labs(title = "Increase or decrease in mortality relative to previous decades", x = "", y = "Pixel Count") +
+  scale_fill_manual(values = c("More" = "red", "Less" = "blue")) +
+  theme_minimal()+
+    theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
+  )
+```
+
+### Animate differences
+
+```{r}
+diff_2040 <- raster_stack_preds[[2]] - raster_stack_preds[[1]]
+diff_2060 <- raster_stack_preds[[4]] - raster_stack_preds[[3]]
+diff_2080 <- raster_stack_preds[[6]] - raster_stack_preds[[5]]
+diff_2100 <- raster_stack_preds[[8]] - raster_stack_preds[[7]]
+
+# Define a custom blue-to-white-to-red color ramp
+color_ramp <- colorRampPalette(c("blue", "white", "red"))
+
+# Automatically calculate symmetric breaks around 0
+max_abs_val <- max(abs(minmax(diff_2080)["max", ]), abs(minmax(diff_2080)["min", ]))
+breaks <- seq(-max_abs_val, max_abs_val, length.out = 21)  # 20 intervals with 0 in the center
+
+
+# Animation erstellen
+titles_ssp5 = c("diff ssp5-ssp2 2040", "diff ssp5-ssp2 2060", "diff ssp5-ssp2 2080", "diff ssp5-ssp2 2100")
+
+saveGIF({
+
+  plot(diff_2040, main = titles_ssp5[1], col = color_ramp(length(breaks)-1), breaks = breaks)
+  plot(diff_2060, main = titles_ssp5[2], col = color_ramp(length(breaks)-1), breaks = breaks)
+  plot(diff_2080, main = titles_ssp5[3], col = color_ramp(length(breaks)-1), breaks = breaks)
+  plot(diff_2100, main = titles_ssp5[4], col = color_ramp(length(breaks)-1), breaks = breaks)
+
+}, movie.name = "dead_tree_animation.gif")
+```
+
+#### Histograms of tree species distribution over time
+
+Let us now make a somewhat more comprehensive analysis. We want to inspect the distribution of tree mortality over time.
+
+```{r}
+# Load required libraries
+
+# Raster files (replace these with your raster files)
+r1 = raster_stack_preds[[c(2)]]/100
+r2 = raster_stack_preds[[c(4)]]/100
+r3 = raster_stack_preds[[c(6)]]/100
+r4 = raster_stack_preds[[c(8)]]/100
+
+# Function to prepare raster data for plotting
+prepare_histogram_data = function(raster, name) {
+  values = values(raster)  # Extract raster values
+  values = values[!is.na(values)]  # Remove NA values
+  data.frame(
+    Value = values,
+    Raster = name
+  )
+}
+
+# Prepare data for all rasters
+df1 = prepare_histogram_data(r1, "2040")
+df2 = prepare_histogram_data(r2, "2060")
+df3 = prepare_histogram_data(r3, "2080")
+df4 = prepare_histogram_data(r4, "2100")
+
+# Combine all data into one data frame
+df = bind_rows(df1, df2, df3, df4)
+
+# Check if the data frame is constructed correctly
+head(df)
+
+# Create histograms with facets
+ggplot(df, aes(x = Value)) +
+  geom_histogram(binwidth = 5, fill = "skyblue", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = 30, color = "red", linetype = "dashed", linewidth = 0.5) + #e.g. threshold for dead pixels from Day 1
+  facet_wrap(~ Raster, scales = "fixed", ncol = 4) +
+  labs(title = "Value (dead trees) distribution in raster files", x = "Dead trees [%]", y = "Frequency") +
+  theme_minimal()
+
+```
+
+#### Animation of tree species distribution
+
+-   A GIF can show how tree species mortality evolve over time, making it easier to observe trends, such as shifts due to climate change.
+
+-   GIFs are simple and engaging, making complex data more accessible to broader audiences, including policymakers, stakeholders, and the general public.
+
+```{r}
+library(animation)
+
+# Define a custom color ramp
+color_ramp = colorRampPalette(c("white", "orange", "red", "darkred"))
+
+# Create breaks to emphasize values above 5000
+breaks = c(0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000)
+
+# Animation erstellen
+titles_ssp5 = c("2040 ssp5", "2060 ssp5", "2080 ssp5", "2100 ssp5")
+
+saveGIF({
+
+  plot(raster_stack_preds[[c(2)]], main = titles_ssp5[1], col = color_ramp(length(breaks)-1), breaks = breaks)
+  plot(raster_stack_preds[[c(4)]], main = titles_ssp5[2], col = color_ramp(length(breaks)-1), breaks = breaks)
+  plot(raster_stack_preds[[c(6)]], main = titles_ssp5[3], col = color_ramp(length(breaks)-1), breaks = breaks)
+  plot(raster_stack_preds[[c(8)]], main = titles_ssp5[4], col = color_ramp(length(breaks)-1), breaks = breaks)
+
+}, movie.name = "dead_tree_animation.gif")
+
+```
+
+#### Interactive map of dead trees distribution using Leaflet
+
+Leaflet allows users to explore the data interactively. They can zoom in, pan around, and focus on specific regions of interest.
+
+```{r}
+library(leaflet)
+library(mapview)
+
+
+template = rast(ext(raster_stack_preds[[8]]), crs = crs(raster_stack_preds[[8]]), resolution = 1000)  # 1000-meter resolution
+
+
+# Resample raster to match the template's resolution
+resampled_raster = resample(raster_stack_preds[[8]], template, method = "bilinear")
+
+# Define a custom color palette
+custom_palette <- colorNumeric(
+  palette = c("green", "orange", "red", "darkred"),
+  domain = values(resampled_raster),  # Define the range of values
+  na.color = "transparent"  # Set NA values to transparent
+)
+
+
+leaflet() %>%
+  addTiles() %>%
+  addRasterImage(resampled_raster,
+                 colors = custom_palette, 
+                 opacity = 0.8) %>%  # Apply custom colors
+  addLegend(
+    pal = custom_palette, 
+    values = values(resampled_raster),
+    title = "Tree species 2100 SSP5",
+    opacity = 0.8
+  )
+```

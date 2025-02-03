@@ -1,0 +1,435 @@
+---
+title: "tutorial_Deadtrees"
+author: "Teja Kattenborn (teja.kattenborn@geosense.uni-freiburg.de); Joachim Maack"
+web: "https://www.geosense.uni-freiburg.de"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+format:
+  html:
+    code-block-bg: true
+    self-contained: true
+  pdf:
+    df-print: kable
+execute:
+  echo: true
+  warning: false
+editor: visual
+---
+
+## Tutorial on dead trees in Germany
+
+We will analyze the distribution of standing deadwood in Germany.
+
+## Standing dead trees between 2018 and 2022
+
+We have prepared a raster stack of the dead trees product. Each band represents one year from 2018 to 2020. The resolution is down-sampled to 100 meters. The extent of the data set is Germany.
+
+Set working directory
+
+```{r}
+#| echo: false
+#| message: true
+#| warning: false
+#library(here)
+
+#install.packages(c("randomForest", "ggcorrplot"))
+library(terra)
+library(randomForest)
+library(ggplot2)
+library(ggcorrplot)
+library(dplyr)
+
+#here::here()
+#getwd()
+
+```
+
+Loading the raster files and start exploring the data with some plotting
+
+```{r}
+#| echo: false
+#| message: true
+#| warning: false
+library(terra)
+
+# Specify the folder containing the raster files
+folder = "Deadtrees"
+
+# List all raster files in the folder (e.g., .tif files)
+raster_files = list.files(folder, pattern = "\\.tif$", full.names = TRUE)
+
+# Load and stack the rasters
+raster_stack = rast(raster_files)
+
+
+plot(raster_stack)
+```
+
+So where did the most trees die in this 5-year period? Lets find the hot-spots for tree mortality. Feel free to optimize the map, e.g. change the color ramp and breaks or make a whole new map.
+
+```{r}
+# Calculate the maximum value for each pixel
+max_raster = app(raster_stack, fun = max, na.rm = TRUE)
+
+
+# Define a custom color ramp
+color_ramp = colorRampPalette(c("white", "orange", "red", "darkred"))
+
+# Create breaks to emphasize values above 5000
+breaks = c(0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 10000)
+
+plot(max_raster, 
+     col = color_ramp(length(breaks) - 1), 
+     breaks = breaks, 
+     main = "Maximum Value Raster with Custom Color Ramp")
+
+# Customize the legend manually if needed
+legend("topright", 
+       legend = c("Low", "5000", "High"), 
+       fill = color_ramp(3), 
+       title = "Elevation (m)")
+```
+
+The values are in % dead trees per pixel, code as integer values from 1-1000 for better data handling and faster calculations. However, for the human mind %-values are much easier to understand. So please make a plot with %-Values (1 = 0.01% and 10000 = 100%).
+
+```{r}
+#nice plotting with %-values
+```
+
+Now we have and indication where most of the trees died.
+
+## Mortality of tree species
+
+Next we can analyze which tree species were most affected. To do so we need another map from the Thünen Institute, representing the most common tree species per pixel. We also down sampled to 100 meters. However, to process all trees species with varying thresholds at once would take too much time. So we are doing this for one species after another: Pick a species and run the calculations below with different thresholds.
+
+```{r}
+#| echo: false
+#| message: true
+#| warning: false
+
+# Load the raster stack and tree species raster
+deadwood_stack = raster_stack
+tree_species = rast("tree_species_class.tif")
+
+#2 Birch
+#3 Beech
+#4 Douglas Fir
+#5 Oak
+#6 Alder
+#8 Spruce
+#9 Pine
+#10 Larch
+#14 Fir
+#16 ODH
+#17 ODL
+
+#set species id here 
+species_id = 8
+
+# Normalize deadwood values (convert to 0-1 scale)
+deadwood_stack = deadwood_stack / 10000
+
+# Set the threshold for a dead pixel here 
+# As the used data was resampled its is not possible to reproduce the exact same results from the paper
+dead_trees_stack = deadwood_stack >= 0.35
+
+# Convert logical TRUE/FALSE to integer 1/0 (optional)
+dead_trees_stack = dead_trees_stack * 1
+
+# Specify the years corresponding to the raster layers
+years = c(2018, 2019, 2020, 2021, 2022)  
+
+# Initialize a result data frame to store the results
+results = data.frame(Year = integer(), TreeSpecies = integer(), AreaDeadTrees = numeric(), AreaTreesSpecies = numeric())
+
+
+# Loop through each raster (year) in the stack
+for (i in 1:nlyr(deadwood_stack)) {
+  # Extract the raster for the current year
+  deadwood_year = dead_trees_stack[[i]]
+  year = years[i]  # Get the corresponding year
+  
+  # Mask pixels belonging to the current species
+  species_mask = tree_species == species_id
+  
+  # Calculate total and average deadwood proportion for the current species
+  species_total_deadwood = global(deadwood_year * species_mask, fun = "sum", na.rm = TRUE)
+  species_pixel_count = global(species_mask, fun = "sum", na.rm = TRUE)
+  
+  # Add result to the data frame
+  results = rbind(
+    results,
+    data.frame(Year = year, TreeSpecies = species_id, AreaDeadTrees = species_total_deadwood$sum, AreaTreesSpecies = species_pixel_count$sum)
+  )
+}
+# Calculate percentage share
+results$share = results$AreaDeadTrees / results$AreaTreesSpecies * 100
+
+head(results)
+
+```
+
+### Plotting deadwood percentage over time
+
+```{r}
+library(ggplot2)
+
+ggplot(results, aes(x = Year, y = share)) +
+  geom_line(color = "#008080", size = 1) +    # Line style
+  geom_point(color = "darkgreen", size = 3) +    # Points on the line
+  theme_minimal() +
+  labs(title = "Deadwood Percentage Over Time",
+       x = "Year",
+       y = "Deadwood Percentage (%)") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Connecting tree mortality with some climatic and topographic data
+
+Lets check if we can model the relationship between environmental data and tree-mortality. We have selected environemntal data, consisting of
+
+-    [SRTM](https://www.earthdata.nasa.gov/data/instruments/srtm) (NASA space shuttle topography mission)
+
+-   [Worldclim](https://www.worldclim.org/data/index.html)
+
+-   [SoilGrids](https://soilgrids.org/)
+
+What will we do?
+
+1.  Prepare the data for model training (merge data into a common raster stack).
+
+2.  Extract sample data from both the tree mortality map (response variable) and the climate data (predictors).
+
+3.  Train a Random Forest model and evaluate the importance of the predictors.
+
+### 1. Prepare Your Data
+
+```{r}
+#| message: true
+#| warning: true
+
+library(terra)
+
+# Maximum mortality map (response variable)
+max_mortality_map = max_raster  # Maximum mortality map from the dead trees stack
+
+# Specify the folder containing the raster files of the predictors
+folder_preds = "Predictors"
+
+# List all raster files of the predictors in the folder (e.g., .tif files)
+raster_files_preds = list.files(folder_preds, pattern = "\\.tif$", full.names = TRUE)
+
+# Load and stack the rasters
+preds_raster_stack = rast(raster_files_preds)
+```
+
+```{r}
+# Check extent
+ext(preds_raster_stack)
+ext(max_raster)
+
+# Check resolution
+res(preds_raster_stack)
+res(max_raster)
+
+```
+
+### 2. Sample predictor and response values
+
+```{r}
+# combine predictors (environmental variables) and response (tree mortality)
+stack_updated = c(preds_raster_stack, max_raster)
+
+# Extract values for the response (tree mortality)
+sampled_values = spatSample(stack_updated, size = 5000, method = "random", xy = TRUE, na.rm=TRUE)
+
+# Check the sampled values
+head(sampled_values)
+```
+
+```{r}
+plot(max_raster)
+points(sampled_values$x, sampled_values$y, col = "red", pch = 18, cex = 0.5)
+```
+
+### 3. Train a Random Forest Model
+
+What is a [RandomForest](https://en.wikipedia.org/wiki/Random_forest#:~:text=Random%20forests%20are%20a%20way,performance%20in%20the%20final%20model.)? RandomForest is a machine learning model. Its underlying principle is simple; it builds on decision trees. Each branch of a tree is a decision based on a predictor (e.g. a temperature value from WorldClim or Slope from SRTM). After one branch follows another branch with a subsequent decision. The special thing about randomForest is that it creates hundreds of such trees, selects the best ones and averages there result. This "democratic" majority vote makes this method so robust and its simplicity makes it so efficient. This is why for years, randomForest is one of the most effective machine learning methods for tabular data.
+
+![](images/Sample-random-forest-regression-tree.png)
+
+Lets train a randomForest. We will train the model a few times and check if the results (explained variance, importance of the predictors) change. Why may this happen? What influence has the sample size? You could also check the correlation between the predictors and remove one if the it exceeds 0.7.
+
+```{r}
+#library(randomForest)
+
+# Define the response variable (tree mortality) and predictors (climate data)
+response = sampled_values$max
+
+# remove uncessesary variables (e.g. the x and y location)
+head(sampled_values[, -c(1,2,11)])
+predictors = sampled_values[, -c(1,2,11)]  # All columns except the first one (response variable)
+
+# Train the Random Forest model
+# What does the argument ntree? Read the help.
+rf_model = randomForest(x = predictors, y = response, importance = TRUE, ntree = 500)
+
+# Check the model results
+print(rf_model)
+
+```
+
+You could also check the correlation between the predictors and remove one if the it exceeds +-0.7.
+
+Further details on the WorldClim data (bio\_.\*) is available [here](https://www.worldclim.org/data/bioclim.html).
+
+```{r}
+#library(ggcorrplot)
+
+# Visualize the correlation matrix
+
+head(sampled_values[, -c(1,2,11)])
+predictors = sampled_values[, -c(1,2,11)]  # All columns except the first one (response variable)
+
+cor_matrix = cor(predictors, use = "complete.obs")
+cor_matrix
+
+ggcorrplot(cor_matrix, lab = TRUE)
+
+
+```
+
+### Permutation Test
+
+In a Random Forest importance plot, %IncMSE (Percentage Increase in Mean Squared Error) is a measure of variable importance. It quantifies how much worse the model's predictions become (in terms of Mean Squared Error, MSE) when the values of a specific predictor variable are randomly permuted.
+
+During the calculation of variable importance, the values of a predictor variable are permuted (shuffled randomly) across all observations, breaking the relationship between the predictor and the response.
+
+IncNodePurity (Increase in Node Purity) is another measure of variable importance used in Random Forest models. It is based on the improvement in the model's ability to correctly classify or predict data (purity) that results from splitting a decision tree using a specific variable.
+
+```{r}
+varImpPlot(rf_model , sort = TRUE  , main = "Predictor Importance" )
+```
+
+### Permutation test advanced
+
+The following procedure applies multiple permutation tests, to assess the stability of the predictor-response relationship. In other words: Are the results stable if we run them multiple times?\
+Warning: This code will need several minutes (\~1 min \* interation).
+
+If the code needs too long on your computer, you can load reprocessed data below the loop-section.
+
+```{r}
+
+# Parameters
+n_iterations = 5 # Number of random samples
+sample_size = 1000
+
+# Store importance values
+importance_results <- list()
+
+# Loop to calculate variable importance
+set.seed(42) # For reproducibility
+for (i in 1:n_iterations) {
+  # Create a random sample of the data
+  sampled_data = spatSample(stack_updated, size = sample_size, method = "random", xy = TRUE, na.rm=TRUE)
+  
+  response = sampled_values$max
+
+  predictors = sampled_values[, -c(1,2,11)]  # All columns except the first one (response variable)
+  
+  # Train Random Forest
+  rf_model_it = randomForest(x = predictors, y = response, importance = TRUE)
+  
+  # Extract %IncMSE importance values
+  importance_df = as.data.frame(importance(rf_model_it, type = 1)) # Type 1 for %IncMSE
+  importance_df$Predictor = rownames(importance_df)
+  importance_df$Iteration = i
+  
+  # Store the results
+  importance_results[[i]] = importance_df
+}
+
+# Combine all importance values into a single data frame
+all_importance = do.call(rbind, importance_results)
+
+# Aggregate the importance values (mean and standard deviation)
+importance_summary = all_importance %>%
+  group_by(Predictor) %>%
+  summarise(
+    Mean_IncMSE = mean(`%IncMSE`),
+    SD_IncMSE = sd(`%IncMSE`)
+  )
+
+# Load pre-processed data
+#importance_summary = readRDS("results_importance.rds")
+
+# Plot the results
+ggplot(importance_summary, aes(x = reorder(Predictor, Mean_IncMSE), y = Mean_IncMSE)) +
+  geom_point(size = 3, color = "darkblue") + 
+  geom_errorbar(aes(ymin = Mean_IncMSE - SD_IncMSE, ymax = Mean_IncMSE + SD_IncMSE), width = 0.2) +
+  coord_flip() +
+  labs(
+    title = "%IncMSE Variable Importance",
+    x = "Predictors",
+    y = "Mean %IncMSE ± SD"
+  ) +
+  theme_minimal()
+```
+
+### Evaluate the dependencies of individual predictors to response
+
+Next, we can calculate the effect of each predictor on the mortality. In easy words, the effect of a single variable is calculated based on its effect on the prediction.
+
+#### Slope
+
+The response is given in the original values (1-10000). Divide by 100 for %-values
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "slope", "1",xlab="Slope in Degree", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Soil: Sand 100-200 cm
+
+The response is given in the original values (1-10000). Divide by 100 for %-values
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "sand_100-200cm_mean", "1",xlab="Sand 100-200 cm", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Soil: Clay 60-100 cm
+
+The response is given in the original values (1-10000). Divide by 100 for %-values
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "clay_60-100cm_mean", "1",xlab="Clay 60-100 cm", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Precipitation Seasonality (wc2.1_30s_bio_15)
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "wc2.1_30s_bio_15" , "1",xlab="Precipitation Seasonality (CoV)", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Annual Mean Temperature (wc2.1_30s_bio_1)
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "wc2.1_30s_bio_1", "1",xlab="Annual Mean Temperature", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Annual Precipitation (wc2.1_30s_bio_12)
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "wc2.1_30s_bio_12" , "1",xlab="Annual Precipitation", ylab="Avg. Response",lwd=4,col="red") 
+```
+
+#### Precipitation of Driest Quarter (wc2.1_30s_bio_17)
+
+```{r}
+# Evaluate the predictors effects
+partialPlot(rf_model, predictors, "wc2.1_30s_bio_17" , "1",xlab="Precipitation of Driest Quarter", ylab="Avg. Response",lwd=4,col="red") 
+```

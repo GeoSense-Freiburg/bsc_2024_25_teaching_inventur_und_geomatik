@@ -1,0 +1,553 @@
+---
+title: "Tutorial Projecting Species Distributions"
+author: "Teja Kattenborn (teja.kattenborn@geosense.uni-freiburg.de); Joachim Maack (joachim.maack@geosense.uni-freiburg.de)"
+web: "https://www.geosense.uni-freiburg.de"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+format:
+  html:
+    code-block-bg: true
+    self-contained: true
+  pdf:
+    df-print: kable
+execute:
+  echo: true
+  warning: false
+editor: visual
+---
+
+# Simulating tree species distributions against climate change scenarios
+
+Forest management requires decisions with long-term implications. In a changing world, we have to consider how future changes in environmental properties will affect our forests. One important question is, which tree species are appropriate under given site conditions and future changes. We will hence use machine learning models (random forest) to project the most suitable tree species for a given time and location:
+
+-   More specifically, we assume that current tree species distributions are ideal representations. We will model the relationship between current tree species distributions and the environment using machine learning models (random forest). These models learned the relationship of present tree mortality patterns with present soil, topographic and climate data.
+-   By running the model again with future climate data, we attempt to simulate how the tree species distribution of the present would look like under future conditions. Thus, this might give us an idea if we should reconsider the tree species selection at a certain location.
+-   Thereby, we will also consider different [Shared Socioeconimic Pathways (SSPs)](https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways), which are different scenarios of human behaviour (more or less CO2 emissions). More specifically, we will use SSP2 and SSP5.
+    -   SSP2 (Middle of the Road):
+
+        -   CO₂ Emissions (2100): \~25--40 GtCO₂/year.
+
+        -   Cumulative Emissions (2020--2100): \~1,200--1,600 GtCO₂.
+
+        -   Peak Warming: \~2.5--3°C by 2100 (depending on mitigation efforts).
+
+    -   SSP5 (Fossil-Fueled Development):
+
+        -   CO₂ Emissions (2100): \~80--100 GtCO₂/year.
+
+        -   Cumulative Emissions (2020--2100): \~2,500--3,500 GtCO₂.
+
+        -   Peak Warming: \~4--5°C by 2100 (high-emission scenario).
+
+These future climate scenarios are obtained from [WorldClim](https://www.worldclim.org/data/cmip6/cmip6climate.html), future climate projections are based on General Circulation Models (GCMs), which simulate climate processes using historical and current climate
+
+The first step is to identify, collect and prepare some influential variables (like in the last week)
+
+Set working directory
+
+```{r}
+#| echo: false
+#| message: true
+#| warning: false
+#library(here)
+
+#install.packages(c("randomForest", "ggcorrplot"))
+library(terra)
+library(randomForest)
+library(ggplot2)
+library(ggcorrplot)
+library(dplyr)
+library(rnaturalearth)
+library(leaflet)
+library(animation)
+
+#here::here()
+#getwd()
+
+```
+
+Loading the raster files and start exploring the data with some plotting
+
+```{r}
+#| echo: false
+#| message: true
+#| warning: false
+
+# Specify the folder containing the raster files
+folder = "Response"
+
+# List all raster files in the folder (e.g., .tif files)
+raster_files = list.files(folder, pattern = "\\.tif$", full.names = TRUE)
+
+# Load and stack the rasters
+raster_stack = rast(raster_files)
+
+# Define the species labels and corresponding integer values
+species_labels <- c(
+  "2" = "Birch",
+  "3" = "Beech",
+  "4" = "Douglas Fir",
+  "5" = "Oak",
+  "6" = "Alder",
+  "8" = "Spruce",
+  "9" = "Pine",
+  "10" = "Larch",
+  "14" = "Fir",
+  "16" = "ODH",
+  "17" = "ODL"
+)
+
+# Define a color palette for the species
+species_colors <- c(
+  "2" = "yellow",
+  "3" = "blue",
+  "4" = "green",
+  "5" = "brown",
+  "6" = "orange",
+  "8" = "darkgreen",
+  "9" = "purple",
+  "10" = "pink",
+  "14" = "red",
+  "16" = "cyan",
+  "17" = "magenta"
+)
+
+# Plot the raster with custom legend
+plot(raster_stack[[2]],
+     main = "Tree Species",
+     col = species_colors,  # Apply the colors
+     legend = FALSE)        # Disable the default legend
+
+# Add a custom legend
+legend("bottomright",
+       legend = species_labels, # Species names
+       fill = species_colors,   # Corresponding colors
+       title = "Tree Species",
+       xpd = TRUE,
+       cex = 0.8)
+
+```
+
+## Connecting tree mortality with some climatic and topographic data
+
+Lets check if we can model the relationship between environmental data and tree-mortality. We have selected environmental data, consisting of
+
+-   [SRTM](https://www.earthdata.nasa.gov/data/instruments/srtm) (NASA space shuttle topography mission)
+
+-   [Worldclim](https://www.worldclim.org/data/index.html)
+
+-   [SoilGrids](https://soilgrids.org/)
+
+What will we do?
+
+1.  Prepare the data for model training (merge data into a common raster stack).
+
+2.  Extract sample data from both the tree mortality map (response variable) and the climate data (predictors).
+
+3.  Train a Random Forest model and evaluate the importance of the predictors.
+
+4.  Permutation test
+
+5.  **Predicting the tree mortality for future climate scenarios (2040, 2060, 2080, 2100)**
+
+6.  **Analyzing the results**
+
+### 1. Prepare Your Data
+
+```{r}
+#| echo: false
+#| message: true
+#| warning: false
+
+# Maximum mortality map (response variable)
+tree_species_map = rast("./response/tree_species_class.tif") # Maximum mortality map from the dead trees stack
+
+# Specify the folder containing the raster files of the predictors
+folder_preds = "Predictors"
+
+# List all raster files of the predictors in the folder (e.g., .tif files)
+raster_files_preds = list.files(folder_preds, pattern = "\\.tif$", full.names = TRUE)
+
+# Load and stack the rasters
+preds_raster_stack = rast(raster_files_preds)
+```
+
+### 2. Sample predictor and response values
+
+```{r}
+# combine predictors (environmental variables) and response (tree mortality)
+stack_updated = c(preds_raster_stack)
+
+# Extract values for the response (tree mortality)
+set.seed(42)
+sampled_values = spatSample(stack_updated, size = 2000, method = "random", xy = TRUE, na.rm=TRUE)
+nrow(sampled_values)
+sampled_values$species_class_sum = as.factor(sampled_values$species_class_sum) #use this variable as a class
+# Check the sampled values
+head(sampled_values)
+```
+
+```{r}
+plot(tree_species_map)
+points(sampled_values$x, sampled_values$y, col = "red", pch = 18, cex = 0.5)
+```
+
+### 3. Train a Random Forest Model
+
+What is a [RandomForest](https://en.wikipedia.org/wiki/Random_forest#:~:text=Random%20forests%20are%20a%20way,performance%20in%20the%20final%20model.)? RandomForest is a machine learning model. Its underlying principle is simple; it builds on decision trees. Each branch of a tree is a decision based on a predictor (e.g. a temperature value from WorldClim or Slope from SRTM). After one branch follows another branch with a subsequent decision. The special thing about randomForest is that it creates hundreds of such trees, selects the best ones and averages there result. This "democratic" majority vote makes this method so robust and its simplicity makes it so efficient. This is why for years, randomForest is one of the most effective machine learning methods for tabular data.
+
+![](images/Sample-random-forest-regression-tree.png)
+
+Lets train a randomForest. We will train the model a few times and check if the results (explained variance, importance of the predictors) change. Why may this happen? What influence has the sample size? You could also check the correlation between the predictors and remove one if the it exceeds 0.7.
+
+```{r}
+# Define the response variable (tree mortality) and predictors (climate data)
+response = sampled_values$species_class_sum
+
+# remove uncessesary variables (e.g. the x and y location)
+head(sampled_values[, -c(1,2,10)])
+predictors = sampled_values[, -c(1,2,10)]  # All columns except the first one (response variable)
+
+# Train the Random Forest model
+# What does the argument ntree? Read the help.
+
+rf_model = randomForest(x = predictors, y = response, importance = TRUE, ntree = 500)
+
+# Check the model results
+print(rf_model)
+
+```
+
+### 4. Permutation Test
+
+In a Random Forest importance plot, %IncMSE (Percentage Increase in Mean Squared Error) is a measure of variable importance. It quantifies how much worse the model's predictions become (in terms of Mean Squared Error, MSE) when the values of a specific predictor variable are randomly permuted.
+
+During the calculation of variable importance, the values of a predictor variable are permuted (shuffled randomly) across all observations, breaking the relationship between the predictor and the response.
+
+IncNodePurity (Increase in Node Purity) is another measure of variable importance used in Random Forest models. It is based on the improvement in the model's ability to correctly classify or predict data (purity) that results from splitting a decision tree using a specific variable.
+
+```{r}
+varImpPlot(rf_model , sort = TRUE  , main = "Predictor Importance" )
+```
+
+You could also check the correlation between the predictors and remove one if the it exceeds +-0.7.
+
+Further details on the WorldClim data (bio\_.\*) is available [here](https://www.worldclim.org/data/bioclim.html).
+
+```{r}
+#library(ggcorrplot)
+
+# Visualize the correlation matrix
+
+head(sampled_values[, -c(1,2,10)])
+predictors = sampled_values[, -c(1,2,10)]  # All columns except the first one (response variable)
+
+cor_matrix = cor(predictors, use = "complete.obs")
+cor_matrix
+
+ggcorrplot(cor_matrix, lab = TRUE)
+
+
+```
+
+### 5. Predict future states (optional)
+
+**The following steps will take some time for processing. However, we have pre-processed the model results. Thus, you can skip 5. and move on to 6.**
+
+Our model is now trained with actual data. In the following we will load possible future states of our predictor variables and present them to your model. Only the climate variables will change for this model, the soil and topographic variables will stay the same.
+
+#### (optional) Load new data for extrapolation
+
+```{r}
+#| eval: false
+#| echo: true
+#| message: true
+#| warning: false
+# Specify the folder containing the raster files of the predictors
+folder_preds = "extrapol_2040_ssp2"
+
+# List all raster files of the predictors in the folder (e.g., .tif files)
+raster_files_ex = list.files(folder_preds, pattern = "\\.tif$", full.names = TRUE)
+
+# Load and stack the rasters
+raster_stack_ex = rast(raster_files_ex)
+
+```
+
+#### (optional) Predicting future tree mortality
+
+```{r}
+#| eval: false
+#| echo: true
+#| message: false
+#| warning: false
+# Load necessary library
+library(randomForest)
+
+# Assume you have a trained Random Forest model
+# rf_model = randomForest(dependent_variable ~ ., data = training_data)
+
+# New dataset for prediction
+new_data = raster_stack_ex
+
+# Ensure the new data has the same structure as the training data
+# Check the column names and factor levels if applicable
+names(new_data)
+names(predictors)
+
+names(new_data) = names(predictors)
+
+new_data = classify(new_data, rcl = cbind(NA, 0)) #RandomForest cant handle NA values
+
+# Make predictions on the new data
+predictions = terra::predict(model=rf_model, object=new_data, parallel = TRUE, type = "class")
+
+# Load your raster (replace 'your_raster.tif' with your file)
+r = predictions
+
+# Check the categories of the first band
+categories = levels(r)[[1]]
+
+
+# Convert the band to integer values representing the original categories
+r_int = classify(r, data.frame(ID = categories$value, Value = as.numeric(as.character(categories$class))))
+
+# Save the resulting raster
+writeRaster(r_int, "predicted_output_2400_species_ssp5.tif", overwrite = TRUE)
+
+```
+
+### 6. Analyzing the results
+
+#### Plotting raster of the time steps
+
+Now we will analyze the results of the predictions. The predictions are based on the HadGEM3-GC31 model using two different [SSP](https://de.wikipedia.org/wiki/Shared_Socioeconomic_Pathway) (Shared Socioeconomic Pathway). HadGEM3 simulates how the Earth's climate behaves under different scenarios. It helps predict how things like temperature, rainfall, and sea levels might change in the future, based on various factors like greenhouse gas emissions. We used HadGEM3 predictions on SSP2 and SSP5.
+
+-   SSP2 is known as the "middle of the road" scenario. It represents a future where global development follows a moderate path with no major disruptions or significant shifts in either direction.
+
+-   SSP5 represents a scenario where the world continues a high-emission, fossil-fuel-driven economic development, with significant technological advancements but also with rising challenges in terms of environmental degradation.
+
+We pre-processed raster files using both scenarios for the years 2040, 2060, 2080 and 2100.
+
+```{r}
+# Load german vector data for masking
+germany = ne_countries(country = "Germany", scale = "medium", returnclass = "sf")
+# Convert to SpatVector (terra format)
+germany_terra = vect(germany)
+germany_terra = project(germany_terra, "EPSG:3035")
+
+# Specify the folder containing the raster files of the predictors
+folder_preds = "Predictions_tree_species"
+
+# List all raster files of the predictors in the folder (e.g., .tif files)
+raster_files_preds = list.files(folder_preds, pattern = "\\.tif$", full.names = TRUE)
+
+# Load and stack the rasters
+raster_stack_preds = as.factor(rast(raster_files_preds))
+raster_stack_preds = mask(raster_stack_preds, germany_terra)
+
+
+# Assign species names to the raster categories
+for (i in 1:nlyr(raster_stack_preds)) {
+  levels(raster_stack_preds[[i]]) <- data.frame(
+    ID = as.numeric(names(species_labels)),  # Integer codes
+    Class = species_labels                  # Species names
+  )
+}
+
+# User-defined titles for the plots
+titles_ssp2 = c("2040 ssp2", "2060 ssp2", "2080 ssp2", "2100 ssp2")
+titles_ssp5 = c("2040 ssp5", "2060 ssp5", "2080 ssp5", "2100 ssp5")
+
+# Plot with proper legend and species names for ssp2
+plot(raster_stack_preds[[c(1,3,5,7)]], 
+     main = titles_ssp2, 
+     col = species_colors)
+
+# Plot with proper legend and species names for ssp5
+plot(raster_stack_preds[[c(2,4,6,8)]], 
+     main = titles_ssp5, 
+     col = species_colors)
+```
+
+#### Difference maps SSP2
+
+Now we want to visualize the difference between the time steps. Which tree species has moved to new habitats?
+
+```{r}
+
+# Calculate differences
+diff_2040_2060_ssp2 = raster_stack_preds[[3]] - raster_stack_preds[[1]]
+diff_2060_2080_ssp2 = raster_stack_preds[[5]] - raster_stack_preds[[3]]
+diff_2080_2100_ssp2 = raster_stack_preds[[7]] - raster_stack_preds[[5]]
+
+# Reclassify: 0 becomes NA, all other values become 1
+diff_2040_2060_ssp2 = lapp(diff_2040_2060_ssp2, function(x) ifelse(x == 0, NA, 1))
+diff_2060_2080_ssp2 = lapp(diff_2060_2080_ssp2, function(x) ifelse(x == 0, NA, 1))
+diff_2080_2100_ssp2 = lapp(diff_2080_2100_ssp2, function(x) ifelse(x == 0, NA, 1))
+
+# Map new trees to species
+new_trees_2060_ssp2 = as.factor(diff_2040_2060_ssp2 * raster_stack_preds[[3]])
+new_trees_2080_ssp2 = as.factor(diff_2060_2080_ssp2 * raster_stack_preds[[5]])
+new_trees_2100_ssp2 = as.factor(diff_2080_2100_ssp2 * raster_stack_preds[[7]])
+
+
+# Add species labels to the raster factor levels
+add_species_labels <- function(raster_layer) {
+  levels(raster_layer) <- data.frame(
+    ID = as.numeric(names(species_labels)),
+    Class = species_labels
+  )
+  return(raster_layer)
+}
+
+# Apply the species labels to the calculated rasters
+new_trees_2060_ssp2 <- add_species_labels(as.factor(diff_2040_2060_ssp2 * raster_stack_preds[[3]]))
+new_trees_2080_ssp2 <- add_species_labels(as.factor(diff_2060_2080_ssp2 * raster_stack_preds[[5]]))
+new_trees_2100_ssp2 <- add_species_labels(as.factor(diff_2080_2100_ssp2 * raster_stack_preds[[7]]))
+
+# Plot new trees with species names in the legend
+par(mfrow = c(1, 3))  # 1 row, 3 columns
+plot(new_trees_2060_ssp2, main = "New Trees 2060", col = species_colors)
+plot(new_trees_2080_ssp2, main = "New Trees 2080", col = species_colors)
+plot(new_trees_2100_ssp2, main = "New Trees 2100", col = species_colors)
+```
+
+#### Difference maps ssp5
+
+Can you please make the same analysis for ssp5?
+
+```{r}
+# Calculating differences
+
+
+```
+
+#### Analyzing a specific tree species
+
+Lets see how a specific tree species has performed over time.
+
+For the following analysis, the whole area of Germany is see as potential forest, it is not restricted to the forested areas of today.
+
+```{r}
+# set multople windows
+par(mfrow = c(3,4))
+
+for(i in 1:length(species_labels)){
+  
+  species = i
+  calc_area = function(raster, species) {
+    sum(values(raster) == species, na.rm = TRUE) * res(raster)[1] * res(raster)[2]
+  }
+  
+  area_species = c(
+    calc_area(raster_stack_preds[[c(2)]], species), #SSP5 2040, 2 = Birch
+    calc_area(raster_stack_preds[[c(4)]], species), #SSP5 2060, 2 = Birch
+    calc_area(raster_stack_preds[[c(6)]], species), #SSP5 2080, 2 = Birch
+    calc_area(raster_stack_preds[[c(8)]], species)  #SSP5 2100, 2 = Birch
+  )
+  
+  area_species = area_species/1000000 #m² to km²
+  years = c(2040, 2060, 2080, 2100)
+  
+    # Plotting timeseries
+    plot(years, area_species, type = "b", col = "darkgreen", pch = 16,
+       xlab = "Year", ylab = "Area (km²)", main = species_labels[i])
+}
+```
+
+#### Histograms of tree species distribution over time
+
+Let us now make a somewhat more comprehensive analysis. We want to inspect the proportions of tree species over time.
+
+```{r}
+# timesteps 2040, 2060, 2080, and 2100
+r1 = values(raster_stack_preds[[2]])  # For 2040
+r2 = values(raster_stack_preds[[4]])  # For 2060
+r3 = values(raster_stack_preds[[6]])  # For 2080
+r4 = values(raster_stack_preds[[8]])  # For 2100
+
+# Sample 10% of the data for faster plotting
+sample_size = 0.1  # 10% sample
+r1_sample = sample(r1, size = length(r1) * sample_size, replace = FALSE)
+r2_sample = sample(r2, size = length(r2) * sample_size, replace = FALSE)
+r3_sample = sample(r3, size = length(r3) * sample_size, replace = FALSE)
+r4_sample = sample(r4, size = length(r4) * sample_size, replace = FALSE)
+
+# Create a data frame with sampled values and corresponding years
+df = data.frame(
+  value = c(r1_sample, r2_sample, r3_sample, r4_sample),
+  year = factor(rep(c(2040, 2060, 2080, 2100), 
+                   times = c(length(r1_sample), length(r2_sample), length(r3_sample), length(r4_sample))),
+                levels = c(2040, 2060, 2080, 2100))
+)
+
+
+
+# Update ggplot with species names on the x-axis
+ggplot(df, aes(x = value, fill = year)) +
+  geom_histogram(binwidth = 0.5, position = "dodge", alpha = 0.6, color = "black") +
+  labs(title = "Tree Species Distribution", x = "Tree Species", y = "Frequency") +
+  scale_fill_manual(values = c("green", "blue", "yellow", "red")) +
+  scale_x_continuous(
+    breaks = as.numeric(names(species_labels)),  # Numeric breaks
+    labels = species_labels  # Custom labels
+  ) +
+  theme_minimal() +
+  theme(
+    legend.title = element_blank(),  # Remove legend title
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels for better readability
+  )
+
+
+```
+
+#### Animation of tree species distribution
+
+-   A GIF can show how tree species distributions evolve over time, making it easier to observe trends, such as shifts in habitat ranges due to climate change.
+
+-   GIFs are simple and engaging, making complex data more accessible to broader audiences, including policymakers, stakeholders, and the general public.
+
+```{r}
+
+saveGIF({
+
+  plot(raster_stack_preds[[c(1)]], main = titles_ssp2[1], col = species_colors)
+  plot(raster_stack_preds[[c(3)]], main = titles_ssp2[2], col = species_colors)
+  plot(raster_stack_preds[[c(5)]], main = titles_ssp2[3], col = species_colors)
+  plot(raster_stack_preds[[c(7)]], main = titles_ssp2[4], col = species_colors)
+
+}, movie.name = "tree_species_animation.gif")
+
+```
+
+```{r}
+saveGIF({
+
+  plot(raster_stack_preds[[c(2)]], main = titles_ssp5[1], col = species_colors)
+  plot(raster_stack_preds[[c(4)]], main = titles_ssp5[2], col = species_colors)
+  plot(raster_stack_preds[[c(6)]], main = titles_ssp5[3], col = species_colors)
+  plot(raster_stack_preds[[c(8)]], main = titles_ssp5[4], col = species_colors)
+
+}, movie.name = "tree_species_animation.gif")
+
+```
+
+#### Interactive map of tree species distribution using Leaflet
+
+Leaflet allows users to explore the data interactively. They can zoom in, pan around, and focus on specific regions of interest.
+
+```{r}
+template = rast(ext(raster_stack_preds[[1]]), crs = crs(raster_stack_preds[[1]]), resolution = 1000)  # 1000-meter resolution
+
+# Resample raster to match the template's resolution
+resampled_raster = resample(raster_stack_preds[[8]], template)
+
+# Add the raster to the leaflet map
+leaflet() %>%
+  addTiles() %>%
+  addRasterImage(resampled_raster, colors = species_colors, opacity = 0.8) %>%
+  addLegend(colors = species_colors,
+            values = species_labels, 
+            title = "Tree Species 2100", 
+            labels = species_labels)
+```
